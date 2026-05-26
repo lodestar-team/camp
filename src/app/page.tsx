@@ -142,11 +142,7 @@ curl "https://camp.cargopete.com/v1/events\\
             <p className="section-lede">
               Requests land at the edge for TLS and DDoS, traverse a Cloudflare
               tunnel to the origin, hit nginx for auth and rate limiting, then
-              query an{" "}
-              <a href="https://github.com/edgeandnode/amp" target="_blank" rel="noreferrer">
-                Amp
-              </a>{" "}
-              node indexing Arbitrum One. Compacted parquet on local SSD keeps
+              query an Amp node indexing Arbitrum One. Compacted parquet on local SSD keeps
               narrow queries sub-second.
             </p>
 
