@@ -12,21 +12,22 @@ These all run on what's already indexed (`blocks`, `transactions`, `logs`) — n
 - [x] `GET /v1/signatures` · known event topic0s
 - [x] `GET /v1/transfers` · Transfer events for an ERC-20/721 token
 - [x] `GET /v1/events` · generic log filter
-- [ ] `GET /v1/block/{n}` · full block with every tx + log
-- [ ] `GET /v1/tx/{hash}` · transaction + receipt + decoded transfers
-- [ ] `GET /v1/address/{a}/tx` · transactions where this address is `from` or `to`
-- [ ] `GET /v1/address/{a}/transfers` · token movements in and out of an address
-- [ ] `GET /v1/gas/blocks?bucket=1m` · time-bucketed gas / base-fee / throughput stats
-- [ ] `GET /v1/contract/{a}/activity?bucket=1h` · log-count time-series for a contract
+- [x] `GET /v1/block/{n}` · full block with every tx + log
+- [x] `GET /v1/tx/{hash}` · transaction + logs (default window: last 100k blocks)
+- [x] `GET /v1/address/{a}/tx` · transactions where this address is `from` or `to`
+- [x] `GET /v1/address/{a}/transfers` · token movements in and out of an address
+- [x] `GET /v1/gas/blocks?bucket=minute|hour|day` · time-bucketed gas / base-fee / throughput stats
+- [x] `GET /v1/contract/{a}/activity?bucket=minute|hour|day` · log-count time-series for a contract
+- [ ] `GET /v1/whales/transfers?token=…&min_value=…` · big-Transfer feed (blocked on Binary→Decimal cast, see Phase 2)
+
+## Phase 2 · Aggregates blocked on a SQL primitive
+
+ampd's DataFusion build doesn't support `arrow_cast(Binary, Decimal128)`, which is what we'd need to filter / SUM over the 32-byte uint256 in `data`. Workaround: page raw rows through the API and reduce in Node with BigInt. Only viable for narrow windows.
+
 - [ ] `GET /v1/whales/transfers?token=…&min_value=…` · big-Transfer feed
-
-## Phase 2 · Aggregates that need SQL primitive work
-
-These depend on DataFusion features that need verification against ampd before we promise them.
-
-- [ ] `GET /v1/token/{a}/volume?bucket=1h` · token transfer volume (requires safe SUM on 32-byte `data` field)
+- [ ] `GET /v1/token/{a}/volume?bucket=1h` · token transfer volume
 - [ ] `GET /v1/token/{a}/holders` · approximate holders via Transfer reconstruction (expensive aggregate)
-- [ ] `GET /v1/address/{a}/interactions` · which contracts an address touched
+- [ ] `GET /v1/address/{a}/interactions` · which contracts an address touched (cheap; could ship now without the cast)
 
 ## Phase 3 · Tokens, then arbitrary SQL
 

@@ -402,6 +402,116 @@ let r: serde_json::Value = reqwest::Client::new()
           </div>
         </section>
 
+        {/* Aggregates */}
+        <section className="block reveal" id="aggregates">
+          <div className="container">
+            <p className="section-eyebrow">v1 · stable · aggregates</p>
+            <h2 className="section-title">Time-bucketed counts and stats.</h2>
+            <p className="section-lede">
+              Group-by queries baked into endpoints, so the engine does the
+              fanout once and you get a series back. Buckets:{" "}
+              <code>minute</code> · <code>hour</code> · <code>day</code>.
+              Max 1,000 buckets per response.
+            </p>
+
+            <div className="endpoints">
+              {/* gas/blocks */}
+              <article className="endpoint-card">
+                <div className="endpoint-line">
+                  <span className="endpoint-verb">GET</span>
+                  <span>/v1/gas/blocks?from_block=N&amp;to_block=M&amp;bucket=minute|hour|day</span>
+                </div>
+                <p className="endpoint-desc">
+                  Per-bucket block stats: count, total / average{" "}
+                  <code>gas_used</code>, and min / average / max{" "}
+                  <code>base_fee_per_gas</code>. Cheap because the{" "}
+                  <code>blocks</code> table is small.
+                </p>
+                <CodeTabs
+                  examples={{
+                    curl: `# Hourly gas stats over a 24h window
+curl "https://camp.cargopete.com/v1/gas/blocks\\
+?from_block=466583000&to_block=466928000&bucket=hour"`,
+                    js: `const params = new URLSearchParams({
+  from_block: "466583000",
+  to_block:   "466928000",
+  bucket:     "hour",
+});
+const { series } = await fetch(
+  \`https://camp.cargopete.com/v1/gas/blocks?\${params}\`
+).then(r => r.json());`,
+                    py: `import requests
+series = requests.get("https://camp.cargopete.com/v1/gas/blocks", params={
+    "from_block": 466583000,
+    "to_block":   466928000,
+    "bucket":     "hour",
+}).json()["series"]`,
+                    rs: `let r: serde_json::Value = reqwest::Client::new()
+    .get("https://camp.cargopete.com/v1/gas/blocks")
+    .query(&[
+        ("from_block", "466583000"),
+        ("to_block",   "466928000"),
+        ("bucket",     "hour"),
+    ])
+    .send().await?.json().await?;`,
+                  }}
+                />
+              </article>
+
+              {/* contract/activity */}
+              <article className="endpoint-card">
+                <div className="endpoint-line">
+                  <span className="endpoint-verb">GET</span>
+                  <span>/v1/contract/&#123;a&#125;/activity?from_block=N&amp;to_block=M&amp;bucket=minute|hour|day</span>
+                </div>
+                <p className="endpoint-desc">
+                  Log count per bucket for a contract address. Useful for
+                  &ldquo;is this protocol busy?&rdquo; charts without pulling
+                  every event.
+                </p>
+                <CodeTabs
+                  examples={{
+                    curl: `# USDC log activity, hour buckets
+curl "https://camp.cargopete.com/v1/contract/0xaf88d065e77c8cc2239327c5edb3a432268e5831/activity\\
+?from_block=466583000&to_block=466928000&bucket=hour"`,
+                    js: `const addr = "0xaf88d065e77c8cc2239327c5edb3a432268e5831";
+const params = new URLSearchParams({
+  from_block: "466583000",
+  to_block:   "466928000",
+  bucket:     "hour",
+});
+const { series } = await fetch(
+  \`https://camp.cargopete.com/v1/contract/\${addr}/activity?\${params}\`
+).then(r => r.json());`,
+                    py: `import requests
+addr = "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+series = requests.get(
+    f"https://camp.cargopete.com/v1/contract/{addr}/activity",
+    params={
+        "from_block": 466583000,
+        "to_block":   466928000,
+        "bucket":     "hour",
+    },
+).json()["series"]`,
+                    rs: `let addr = "0xaf88d065e77c8cc2239327c5edb3a432268e5831";
+let r: serde_json::Value = reqwest::Client::new()
+    .get(format!(
+        "https://camp.cargopete.com/v1/contract/{}/activity",
+        addr
+    ))
+    .query(&[
+        ("from_block", "466583000"),
+        ("to_block",   "466928000"),
+        ("bucket",     "hour"),
+    ])
+    .send().await?.json().await?;`,
+                  }}
+                />
+              </article>
+            </div>
+          </div>
+        </section>
+
         {/* Architecture */}
         <section className="block reveal">
           <div className="container">
