@@ -1,6 +1,8 @@
 # camp
 
-Community **Amp** node for Arbitrum One. A free REST gateway over indexed blocks, transactions, and events — no signup, no API key, sub-second query latency on typical filters.
+Free Dune-class data API for Arbitrum One — decoded protocol events, tip-fresh, no signup.
+
+Built on a self-hosted **Amp** node. The pitch in one line: same query shape Dune offers (decoded protocol tables), but updated at chain tip and free.
 
 Live at **https://camp.cargopete.com**.
 
@@ -67,12 +69,10 @@ Point `AMP_ORIGIN` at `http://localhost:1604` when running against a local ampd.
 
 Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 
-- **Phase 1** — lookups + cheap aggregates against existing data. ✅ `/v1/block`, `/v1/tx`, `/v1/address/*/tx`, `/v1/address/*/transfers`, `/v1/gas/blocks`, `/v1/contract/*/activity` shipped. ⏳ remaining: whale-Transfer feed (needs binary→decimal cast workaround)
-- **Phase 2** — aggregates that need a Binary→Decimal workaround (ampd's DataFusion doesn't support that cast yet): token volume / holders, address interactions
-- **Phase 3** — anonymous tokens + raw `POST /v1/sql` behind cost-based budget
-- **Phase 4** — decoded tables for the top ~20 Arbitrum protocols (Uniswap, Aave, GMX, Stargate, Graph Horizon, etc.)
-- **Phase 5** — saved-query share URLs, CSV/Arrow export, webhooks/SSE, OpenAPI client
-- **Phase 6** — USD prices, ENS labels, eventually a second chain
+- **Phase 1** ✅ Lookups + cheap aggregates over raw tables (10 endpoints)
+- **Phase A** 🚧 Decoded protocol data using Amp's `evm_decode_log` / `evm_topic` UDFs. Typed responses on existing endpoints, Graph Horizon decoded dataset, then Uniswap V3 + GMX.
+- **Phase B** Dashboard / explore UI — server-rendered pages that demo what's possible (gas, slashing, whales).
+- **Phase C** Anonymous tokens, raw `POST /v1/sql`, streaming/webhooks, CSV/Arrow IPC export.
 
 ## Deploys
 

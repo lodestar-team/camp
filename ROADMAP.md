@@ -2,80 +2,109 @@
 
 Not a commitment — a direction. Order roughly reflects what gets shipped first.
 
+**Vision update (2026-05-26):** camp is moving from "an Amp node wrapped in REST" to **a Dune-class data product for Arbitrum** — decoded protocol tables, tip-fresh updates, free and ungated. The Amp source (open on disk now) gives us `evm_decode_log`, `evm_topic`, `eth_call`-in-SQL and the ability to define typed derived datasets. That changes the product surface entirely.
+
 ---
 
-## Phase 1 · More lookups against existing data
+## ✅ Phase 1 · Lookups + cheap aggregates against raw tables
 
-These all run on what's already indexed (`blocks`, `transactions`, `logs`) — no new ingestion needed.
+Done.
 
-- [x] `GET /v1/status` · sync state
-- [x] `GET /v1/signatures` · known event topic0s
-- [x] `GET /v1/transfers` · Transfer events for an ERC-20/721 token
-- [x] `GET /v1/events` · generic log filter
-- [x] `GET /v1/block/{n}` · full block with every tx + log
-- [x] `GET /v1/tx/{hash}` · transaction + logs (default window: last 100k blocks)
-- [x] `GET /v1/address/{a}/tx` · transactions where this address is `from` or `to`
-- [x] `GET /v1/address/{a}/transfers` · token movements in and out of an address
-- [x] `GET /v1/gas/blocks?bucket=minute|hour|day` · time-bucketed gas / base-fee / throughput stats
-- [x] `GET /v1/contract/{a}/activity?bucket=minute|hour|day` · log-count time-series for a contract
-- [ ] `GET /v1/whales/transfers?token=…&min_value=…` · big-Transfer feed (blocked on Binary→Decimal cast, see Phase 2)
+- [x] `GET /v1/status`
+- [x] `GET /v1/signatures`
+- [x] `GET /v1/transfers` (returns padded-hex `from`/`to`/`amount_hex` — to be upgraded in Phase A)
+- [x] `GET /v1/events`
+- [x] `GET /v1/block/{n}`
+- [x] `GET /v1/tx/{hash}`
+- [x] `GET /v1/address/{a}/tx`
+- [x] `GET /v1/address/{a}/transfers`
+- [x] `GET /v1/gas/blocks` (time-bucketed)
+- [x] `GET /v1/contract/{a}/activity` (time-bucketed)
 
-## Phase 2 · Aggregates blocked on a SQL primitive
+---
 
-ampd's DataFusion build doesn't support `arrow_cast(Binary, Decimal128)`, which is what we'd need to filter / SUM over the 32-byte uint256 in `data`. Workaround: page raw rows through the API and reduce in Node with BigInt. Only viable for narrow windows.
+## 🚧 Phase A · Decoded protocol data (in progress)
 
+**Why this matters:** This is the wedge against Dune. Their `uniswap_v3.swap_events` decoded tables are most of why analysts use them. Amp's `evm_decode_log` UDF lets us serve the same shape — at tip — for free.
+
+### A1 · Typed responses on existing endpoints
+- [ ] `/v1/transfers?decoded=true` — returns typed `from` / `to` / `value` (Decimal128) instead of padded hex topics
+- [ ] `/v1/events?decoded_with=<signature>` — when supplied, decode using `evm_decode_log` and return typed fields
+
+### A2 · Graph Horizon decoded dataset
+The dataset definition already exists in [`~/amping/amp.config.ts`](../amping/amp.config.ts). Deploy and expose:
+- [ ] `GET /v1/horizon/provisions` · `ProvisionCreated`/`ProvisionIncreased`/`ProvisionThawed`/`ProvisionSlashed` decoded
+- [ ] `GET /v1/horizon/delegations` · `TokensDelegated`/`TokensUndelegated`/`DelegationSlashed` decoded
+- [ ] `GET /v1/horizon/stake` · `HorizonStakeDeposited`/`Locked`/`Withdrawn` decoded
+- [ ] `GET /v1/horizon/indexers/{addr}` · combined timeline for one service provider
+
+### A3 · Phase 2 endpoints unblocked
+The `arrow_cast(Binary, Decimal128)` block goes away because `evm_decode_log` returns numeric types directly.
+- [ ] `GET /v1/token/{a}/volume?bucket=…` · transfer volume per bucket (SUM over decoded `value`)
+- [ ] `GET /v1/token/{a}/holders` · approximate holders via Transfer reconstruction
 - [ ] `GET /v1/whales/transfers?token=…&min_value=…` · big-Transfer feed
-- [ ] `GET /v1/token/{a}/volume?bucket=1h` · token transfer volume
-- [ ] `GET /v1/token/{a}/holders` · approximate holders via Transfer reconstruction (expensive aggregate)
-- [ ] `GET /v1/address/{a}/interactions` · which contracts an address touched (cheap; could ship now without the cast)
+- [ ] `GET /v1/address/{a}/interactions` · which contracts an address touched
 
-## Phase 3 · Tokens, then arbitrary SQL
+### A4 · Two more protocols
+Three each: events the protocol cares about. Each is a half-day to define.
+- [ ] Uniswap V3 — `swap_events`, `mint_events`, `burn_events`
+- [ ] GMX V2 — `trades`, `funding_events`, `liquidations`
 
-Until callers have an identity beyond an IP we can't safely expose raw SQL — any one query could OOM ampd. With tokens we can throttle by *cost* instead of count and open the gates.
+---
+
+## 🎨 Phase B · Dashboard / explore UI
+
+Server-rendered pages that demo what the API can do. No client-side query playground yet.
+
+- [ ] `/explore` — index page listing dashboards
+- [ ] `/explore/horizon` — live slashing feed, delegation flow, top indexers
+- [ ] `/explore/gas` — real-time gas / base-fee chart
+- [ ] `/explore/whales` — big Transfer ticker across major tokens
+- [ ] OG / share images for each dashboard
+
+---
+
+## ⚙️ Phase C · Tokens, raw SQL, streaming
+
+This is when camp becomes a platform, not just an API.
 
 - [ ] Anonymous tokens auto-issued on first request, stored client-side
 - [ ] Per-token sliding-window + scan-byte budget
 - [ ] `POST /v1/sql` · raw `SELECT`, allowlisted, with required `block_num` filter, hard `LIMIT 1000`, 8s timeout, scan-byte cost tracked
-- [ ] Higher-tier tokens (email signup) with bigger budgets
-
-## Phase 4 · Decoded protocol tables
-
-The biggest gap to Dune-class usefulness on this chain. Each decoded dataset is a small declarative addition to `amp.config.ts` on the indexer side.
-
-- [ ] Uniswap V3 swaps, pools, liquidity events
-- [ ] Uniswap V2 swaps
-- [ ] Aave V3 borrow / supply / liquidation
-- [ ] GMX V2 trades + funding
-- [ ] Camelot DEX
-- [ ] Stargate / LayerZero bridge flows
-- [ ] Graph Horizon staking (already partly defined in the indexer repo)
-- [ ] USDC / USDT / DAI / WETH / GRT — decoded Transfer/Approval tables per token
-- [ ] Top-10 NFT collections by Arbitrum volume
-
-Each gets a typed endpoint family: `/v1/uniswap-v3/swaps?pool=…`, etc.
-
-## Phase 5 · Composition + UX
-
-What makes Dune sticky isn't the SQL, it's the graph of saved queries and shared dashboards.
-
-- [ ] Saved queries with stable share URLs · `GET /q/{slug}` returns the latest result
-- [ ] Result formats: JSON (default) · JSONL · CSV · Apache Arrow IPC
-- [ ] Webhooks · POST your URL when a filter matches a new log
-- [ ] SSE / WebSocket subscriptions for live filters
+- [ ] Higher-tier tokens with bigger budgets (email signup)
+- [ ] `GET /v1/stream/transfers?token=…` · live push via SSE/WebSocket
+- [ ] `GET /v1/stream/events?address=…&topic0=…` · filtered live push
+- [ ] Webhooks · `POST` to your URL when a filter matches a new log
+- [ ] CSV / Arrow IPC response formats
 - [ ] OpenAPI spec + auto-generated TS client (`@camp/client`)
-- [ ] Minimal in-browser query playground at `/q`
 
-## Phase 6 · Wider lens
+---
 
-- [ ] Optional USD price ingestion (oracle feed → Postgres → JOIN-able view)
-- [ ] ENS reverse lookup + address labels
-- [ ] A second chain (only if it's clear we won the Arbitrum niche first)
+## 🧰 Infra / engine
+
+- [x] Self-hosted Redis for IP rate limiting (`/srh/` on the tunnel)
+- [x] Hourly reindex timer to work around v0.0.35 compactor bug
+- [x] Flight-shim written (drop-in replacement for the v0.0.36-removed JSONL endpoint)
+- [ ] Switch nginx to use the Flight shim
+- [ ] Upgrade ampd v0.0.35 → v0.0.36 (compactor works there)
+- [ ] Drop the hourly reindex timer once compactor is verified
+- [ ] Add per-token cost-based rate limiting (gates Phase C)
+- [ ] Backfill more than just "since last reindex" — full Arbitrum history for the protocols we care about
+
+## 🔭 Optional / opportunistic
+
+These are nice-to-haves we'd pick up if a specific user need pushed us toward them.
+
+- [ ] USD price ingestion (oracle feed → joined view) — `eth_call` UDF means we could do this *inside SQL* against a Chainlink feed
+- [ ] ENS reverse lookup
+- [ ] An indexer / dashboard for `camp` itself — query stats, popular endpoints
+- [ ] A second chain (only after Arbitrum protocol coverage is real)
 
 ---
 
 ## What's deliberately NOT on the roadmap
 
-- **Token balances by reading state** — we have events, not state. Anyone who needs current balance should call the RPC directly.
-- **Decoded calldata for arbitrary transactions** — 4byte / Etherscan resolution is a separate problem space, and the value is marginal here.
-- **Pre-genesis history** — we backfill on request, but the default is "from when this node was deployed."
-- **Multi-tenant dashboards / login** — camp is a data API, not a SaaS product. If you want dashboards, run a Grafana / Hex / Metabase against the SQL endpoint when it exists.
+- Token balances by reading state via RPC outside SQL. We can do it *via* `eth_call` in SQL, but we don't offer a pure-balance endpoint.
+- Forking ampd. We have the source for understanding; modifying only if we hit a specific patch-able blocker.
+- Multi-tenant dashboards / SaaS login. camp is a data API. Use Grafana / Hex / Metabase against the SQL endpoint when it exists.
+- Free-tier limits beyond DoS protection. We don't have a paid tier; per-IP and per-token budgets are about protecting the laptop, not monetizing.
