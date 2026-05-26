@@ -1,16 +1,16 @@
 # camp
 
-Community [**Amp**](https://github.com/edgeandnode/amp) node — a free, tip-fresh REST gateway over Arbitrum One. Vercel is the public edge; the origin is one consumer laptop on residential internet. No SLA.
+Community [**Amp**](https://github.com/edgeandnode/amp) node for Arbitrum One. A free REST gateway over indexed blocks, transactions, and events — no signup, no API key, sub-second query latency on typical filters.
 
-Live at **https://amp-public-api.vercel.app** (project will be renamed to `camp.vercel.app` once the alias is migrated).
+Live at **https://amp-public-api.vercel.app** (custom domain `camp.cargopete.com` rolling out).
 
-See [src/app/page.tsx](src/app/page.tsx) for the public-facing landing page (endpoint catalog, rate limits, disclaimer).
+See [src/app/page.tsx](src/app/page.tsx) for the public-facing landing page (endpoint catalog, rate limits, scope).
 
 ## Endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/v1/status` | Latest indexed block + count |
+| GET | `/v1/status` | Latest indexed block + indexed-block count |
 | GET | `/v1/signatures` | Reference of well-known event topic0s |
 | GET | `/v1/transfers?token=…&from_block=…&to_block=…&limit=…` | ERC-20 / 721 Transfer events, decoded |
 | GET | `/v1/events?address=…&topic0=…&topic1=…&from_block=…&to_block=…&limit=…` | Generic log filter |
@@ -22,19 +22,19 @@ Server-side caps: block span ≤ 100,000 · rows ≤ 1,000 · query timeout 8 s.
 ```
 client
   ↓
-https://amp-public-api.vercel.app   (Vercel: TLS, DDoS, CDN cache)
+amp-public-api.vercel.app           (edge: TLS, DDoS, CDN cache)
   ↓
-Cloudflare Quick Tunnel             (auto-rotates URL on cloudflared restart;
-  ↓                                   sync script in the ampd repo handles it)
-nginx :1604 (ThinkPad)
-  ├─ /         → ampd JSONL :1603   (X-Amp-Token gate)
-  ├─ /srh/     → SRH :8079 → redis  (Bearer-token gate, rate-limit state)
+Cloudflare Tunnel                   (private origin link;
+  ↓                                  URL auto-rotates and re-syncs)
+nginx                               (shared-secret + Redis rate limit)
+  ├─ /         → ampd JSONL         (token-gated SQL)
+  ├─ /srh/     → Redis HTTP shim    (rate-limit state)
   └─ /healthz
   ↓
-ampd  (Arbitrum One indexer, parquet on local SSD)
+ampd  (Arbitrum One indexer; parquet on local SSD, compactor active)
 ```
 
-The ampd node, Redis, nginx, and the cloudflared tunnel live in a separate private repo (`cargopete/amping`). This project is just the public-facing Vercel gateway.
+The ampd node, Redis shim, nginx, and the cloudflared tunnel live in a separate ops repo. This project is the public-facing Vercel gateway only.
 
 ## Local dev
 
@@ -44,7 +44,7 @@ cp .env.example .env.local       # then fill in
 npm run dev                      # http://localhost:3000
 ```
 
-For local dev, point `AMP_ORIGIN` at `http://localhost:1604` if you're on the same machine as an ampd node, and skip the `UPSTASH_*` vars — rate limiting gracefully no-ops without them.
+Point `AMP_ORIGIN` at `http://localhost:1604` when running against a local ampd. Rate limiting gracefully no-ops without the `UPSTASH_*` vars.
 
 ## Env vars
 
@@ -54,12 +54,12 @@ For local dev, point `AMP_ORIGIN` at `http://localhost:1604` if you're on the sa
 | `AMP_TOKEN` | Shared secret nginx expects in `X-Amp-Token` |
 | `AMP_DATASET` | Fully-qualified dataset@version, e.g. `_/arbitrum_one@2.0.0` |
 | `AMP_QUERY_TIMEOUT_MS` | Per-query hard cap, must be < Vercel function timeout (8000 default) |
-| `UPSTASH_REDIS_REST_URL` | Self-hosted SRH URL via tunnel (`$AMP_ORIGIN/srh`); enables rate limiting |
-| `UPSTASH_REDIS_REST_TOKEN` | Bearer token SRH validates |
+| `UPSTASH_REDIS_REST_URL` | Redis REST URL (self-hosted shim or Upstash); enables rate limiting |
+| `UPSTASH_REDIS_REST_TOKEN` | Bearer token the Redis REST endpoint expects |
 
 ## Deploys
 
-The Vercel project is **not** Git-connected — deploys happen via `vercel --prod` from a local checkout. Automation in the ampd repo redeploys automatically whenever the cloudflared tunnel URL rotates.
+The Vercel project isn't Git-connected — deploys happen via `vercel --prod` from a local checkout. Automation in the ops repo redeploys automatically whenever the origin tunnel URL rotates.
 
 For a manual deploy of code changes:
 
@@ -67,6 +67,10 @@ For a manual deploy of code changes:
 vercel --prod
 ```
 
+## Run your own
+
+camp is one of many possible deployments of the same pattern. Want a node that's not subject to anyone else's limits? Clone Amp, run `ampd solo` against your own Arbitrum RPC, drop this gateway in front of it. The whole thing fits on a small VPS or any home server.
+
 ## License
 
-MIT. The Amp engine itself is BUSL-1.1; this gateway only consumes its REST output.
+MIT. The underlying Amp engine is BUSL-1.1; this gateway consumes its REST output only.
