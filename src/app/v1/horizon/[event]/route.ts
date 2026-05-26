@@ -15,12 +15,18 @@ export const maxDuration = 10;
 
 type RouteContext = { params: Promise<{ event: string }> };
 
-// Convert a decoded field reference into a SQL projection that pulls it
-// out of the decoded struct alias `d`. evm_decode_log gives every field
-// as Utf8; we leave numeric/uint values as decimal strings (big-int safe)
-// and just prefix address fields with '0x' in the response layer.
-function projectField(name: string): string {
-  return `d['${name}'] AS "${name}"`;
+import type { HorizonEvent } from "@/lib/horizon";
+
+// SQL projection per field. Address/bytes32 fields are hex-encoded;
+// uint/int fields are cast to Utf8 so big numbers (uint256 amounts that
+// exceed JS Number.MAX_SAFE_INTEGER) survive the JSON round-trip with
+// full precision.
+function projectField(f: HorizonEvent["fields"][number]): string {
+  const expr = `d['${f.name}']`;
+  if (f.kind === "address" || f.kind === "bytes32") {
+    return `${hexCol(expr)} AS "${f.name}"`;
+  }
+  return `arrow_cast(${expr}, 'Utf8') AS "${f.name}"`;
 }
 
 export async function GET(req: Request, ctx: RouteContext) {
@@ -65,7 +71,7 @@ export async function GET(req: Request, ctx: RouteContext) {
     });
 
     const fieldsProjection = event.fields
-      .map((f) => projectField(f.name))
+      .map(projectField)
       .join(",\n        ");
 
     const sql = `
