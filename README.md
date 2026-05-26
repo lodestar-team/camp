@@ -2,7 +2,7 @@
 
 Community [**Amp**](https://github.com/edgeandnode/amp) node for Arbitrum One. A free REST gateway over indexed blocks, transactions, and events — no signup, no API key, sub-second query latency on typical filters.
 
-Live at **https://amp-public-api.vercel.app** (custom domain `camp.cargopete.com` rolling out).
+Live at **https://camp.cargopete.com**.
 
 See [src/app/page.tsx](src/app/page.tsx) for the public-facing landing page (endpoint catalog, rate limits, scope).
 

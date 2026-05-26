@@ -82,7 +82,7 @@ export default function Home() {
                   Latest indexed block plus indexed-block count. Cheap, cached
                   at the edge for 5 seconds.
                 </p>
-                <pre className="endpoint-example">{`curl https://amp-public-api.vercel.app/v1/status`}</pre>
+                <pre className="endpoint-example">{`curl https://camp.cargopete.com/v1/status`}</pre>
               </article>
 
               {/* signatures */}
@@ -95,7 +95,7 @@ export default function Home() {
                   Reference table of well-known event topic0 hashes →
                   human-readable names. Useful for decoding without an ABI.
                 </p>
-                <pre className="endpoint-example">{`curl https://amp-public-api.vercel.app/v1/signatures`}</pre>
+                <pre className="endpoint-example">{`curl https://camp.cargopete.com/v1/signatures`}</pre>
               </article>
 
               {/* transfers */}
@@ -110,7 +110,7 @@ export default function Home() {
                   <code>to</code> / <code>amount_hex</code>.
                 </p>
                 <pre className="endpoint-example">{`# USDC transfers in a 200-block window
-curl "https://amp-public-api.vercel.app/v1/transfers\\
+curl "https://camp.cargopete.com/v1/transfers\\
 ?token=0xaf88d065e77c8cc2239327c5edb3a432268e5831\\
 &from_block=466835663&to_block=466835863&limit=10"`}</pre>
               </article>
@@ -128,7 +128,7 @@ curl "https://amp-public-api.vercel.app/v1/transfers\\
                   <code>to</code>.
                 </p>
                 <pre className="endpoint-example">{`# HorizonStaking events in last 1000 blocks
-curl "https://amp-public-api.vercel.app/v1/events\\
+curl "https://camp.cargopete.com/v1/events\\
 ?address=0x00669a4cf01450b64e8a2a20e9b1fcb71e61ef03\\
 &from_block=466834863&to_block=466835863&limit=20"`}</pre>
               </article>
