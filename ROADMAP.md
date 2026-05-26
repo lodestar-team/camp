@@ -68,15 +68,33 @@ Server-rendered pages that demo what the API can do. No client-side query playgr
 
 This is when camp becomes a platform, not just an API.
 
+**Reframed 2026-05-26 after reading amp-typescript + amp source:** Amp already
+ships streaming + reorg detection + CDC events natively. We don't *build*
+streaming — we *expose* what's already there. Set `amp-stream: true` on a
+Flight query → Amp pushes Insert/Delete + reorg events. Our job is the
+SSE/WebSocket envelope, not the engine.
+
+### C1 · Tokens
 - [ ] Anonymous tokens auto-issued on first request, stored client-side
 - [ ] Per-token sliding-window + scan-byte budget
-- [ ] `POST /v1/sql` · raw `SELECT`, allowlisted, with required `block_num` filter, hard `LIMIT 1000`, 8s timeout, scan-byte cost tracked
 - [ ] Higher-tier tokens with bigger budgets (email signup)
-- [ ] `GET /v1/stream/transfers?token=…` · live push via SSE/WebSocket
-- [ ] `GET /v1/stream/events?address=…&topic0=…` · filtered live push
-- [ ] Webhooks · `POST` to your URL when a filter matches a new log
+
+### C2 · Raw query layer (behind tokens)
+- [ ] `POST /v1/sql` · raw `SELECT`, allowlisted, with required `block_num` filter, hard `LIMIT 1000`, 8s timeout, scan-byte cost tracked
 - [ ] CSV / Arrow IPC response formats
 - [ ] OpenAPI spec + auto-generated TS client (`@camp/client`)
+
+### C3 · Streaming — expose Amp's CDC + ProtocolStream
+- [ ] `GET /v1/stream/horizon/{event}` · SSE wrapping Amp's CDC stream over a decoded Horizon table — Insert / Delete / Reorg events
+- [ ] `GET /v1/stream/transfers?token=…` · live token-transfer push
+- [ ] `GET /v1/stream/whales?token=…&min_value=…` · filtered whale push
+- [ ] `GET /v1/stream/sql?q=…` (token-gated) · stream any subscribed query
+- [ ] Webhooks · `POST` to your URL when a matching event arrives (built on top of CDC)
+- [ ] `amp-resume` watermark support — clients can reconnect from a last-seen block hash
+
+### C4 · Discovery
+- [ ] `/v1/datasets` proxy of Amp's RegistryApi — list deployed datasets + their schemas
+- [ ] `/v1/datasets/{namespace}/{name}` · dataset detail (tables, fields, manifest hash)
 
 ---
 
