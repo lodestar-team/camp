@@ -60,8 +60,8 @@ export default function Home() {
         {/* Endpoints */}
         <section className="block reveal" id="endpoints">
           <div className="container">
-            <p className="section-eyebrow">v1 · stable</p>
-            <h2 className="section-title">Four endpoints, parameterised SQL behind each.</h2>
+            <p className="section-eyebrow">v1 · stable · queries</p>
+            <h2 className="section-title">Parameterised SQL behind each endpoint.</h2>
             <p className="section-lede">
               Every request maps to a single bounded query against the indexed
               parquet tables. Block range, address, and topic filters are
@@ -129,6 +129,81 @@ curl "https://camp.cargopete.com/v1/transfers\\
 curl "https://camp.cargopete.com/v1/events\\
 ?address=0x00669a4cf01450b64e8a2a20e9b1fcb71e61ef03\\
 &from_block=466834863&to_block=466835863&limit=20"`}</pre>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        {/* Lookups */}
+        <section className="block reveal" id="lookups">
+          <div className="container">
+            <p className="section-eyebrow">v1 · stable · lookups</p>
+            <h2 className="section-title">Look it up by block, hash, or address.</h2>
+            <p className="section-lede">
+              The wallet-explorer side of things. Same engine, same caps,
+              shaped queries instead of generic filters. Defaults to a 100 k
+              block window when no range is given.
+            </p>
+
+            <div className="endpoints">
+              {/* block */}
+              <article className="endpoint-card half">
+                <div className="endpoint-line">
+                  <span className="endpoint-verb">GET</span>
+                  <span>/v1/block/&#123;n&#125;</span>
+                </div>
+                <p className="endpoint-desc">
+                  Block header, every transaction in it, every log emitted —
+                  one request, three parallel queries.
+                </p>
+                <pre className="endpoint-example">{`curl https://camp.cargopete.com/v1/block/466862035`}</pre>
+              </article>
+
+              {/* tx */}
+              <article className="endpoint-card half">
+                <div className="endpoint-line">
+                  <span className="endpoint-verb">GET</span>
+                  <span>/v1/tx/&#123;hash&#125;</span>
+                </div>
+                <p className="endpoint-desc">
+                  Transaction + receipt + emitted logs. Searches the last
+                  100 k blocks by default; override with{" "}
+                  <code>from_block</code> / <code>to_block</code>.
+                </p>
+                <pre className="endpoint-example">{`curl https://camp.cargopete.com/v1/tx/0x7b73…7481`}</pre>
+              </article>
+
+              {/* address tx */}
+              <article className="endpoint-card">
+                <div className="endpoint-line">
+                  <span className="endpoint-verb">GET</span>
+                  <span>/v1/address/&#123;a&#125;/tx?from_block=N&amp;to_block=M&amp;direction=from|to|all&amp;limit=100</span>
+                </div>
+                <p className="endpoint-desc">
+                  Every transaction where the address is{" "}
+                  <code>from</code> or <code>to</code>, in a block range.
+                  Direction defaults to <code>all</code>.
+                </p>
+                <pre className="endpoint-example">{`# Outbound txs for an address in the last ~hour
+curl "https://camp.cargopete.com/v1/address/0xe8d294…a462/tx\\
+?from_block=466840000&to_block=466856000&direction=from&limit=25"`}</pre>
+              </article>
+
+              {/* address transfers */}
+              <article className="endpoint-card">
+                <div className="endpoint-line">
+                  <span className="endpoint-verb">GET</span>
+                  <span>/v1/address/&#123;a&#125;/transfers?from_block=N&amp;to_block=M&amp;direction=in|out|all&amp;token=0x…</span>
+                </div>
+                <p className="endpoint-desc">
+                  Token movements in and out of an address (any ERC-20/721),
+                  decoded. Optionally scope to a single <code>token</code>{" "}
+                  contract.
+                </p>
+                <pre className="endpoint-example">{`# Inbound USDC transfers to a wallet
+curl "https://camp.cargopete.com/v1/address/0xe8d294…a462/transfers\\
+?token=0xaf88d065e77c8cc2239327c5edb3a432268e5831\\
+&from_block=466840000&to_block=466856000&direction=in&limit=25"`}</pre>
               </article>
             </div>
           </div>
