@@ -27,7 +27,6 @@ export function CodeTabs({ examples }: { examples: Examples }) {
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      // Older Safari / non-secure context: fall back to a hidden textarea
       const ta = document.createElement("textarea");
       ta.value = text;
       ta.style.position = "fixed";
@@ -57,16 +56,43 @@ export function CodeTabs({ examples }: { examples: Examples }) {
             {LABELS[lang]}
           </button>
         ))}
+      </div>
+      <div className="code-tabs-box">
+        <pre className="endpoint-example">{examples[active]}</pre>
         <button
           type="button"
           className={`code-tabs-copy${copied ? " copied" : ""}`}
           onClick={copy}
           aria-label="Copy example to clipboard"
         >
-          {copied ? "copied" : "copy"}
+          {copied ? (
+            <CheckIcon />
+          ) : (
+            <CopyIcon />
+          )}
         </button>
       </div>
-      <pre className="endpoint-example">{examples[active]}</pre>
     </div>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="4.5" y="4.5" width="9" height="10" rx="1.5"
+        stroke="currentColor" strokeWidth="1.3" />
+      <path d="M2.5 11V2.5a1 1 0 0 1 1-1H11"
+        stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 8.5 6.5 12 13 4.5"
+        stroke="currentColor" strokeWidth="1.6"
+        strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
