@@ -325,6 +325,40 @@ section.block {
   color: var(--text);
 }
 
+/* Per-endpoint language tabs */
+.code-tabs { display: flex; flex-direction: column; }
+.code-tabs-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.code-tabs-tab {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  color: var(--text-subtle);
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-bottom-color: transparent;
+  border-radius: 5px 5px 0 0;
+  background: transparent;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+.code-tabs-tab:hover { color: var(--text); }
+.code-tabs-tab.active {
+  color: var(--text);
+  background: var(--code-bg);
+  border-color: var(--border);
+}
+.code-tabs .endpoint-example {
+  border-top-left-radius: 0;
+  position: relative;
+  z-index: 1;
+}
+
 /* ─── architecture diagram ─── */
 .arch {
   background: var(--surface);

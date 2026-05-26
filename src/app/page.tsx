@@ -1,5 +1,6 @@
 import { StatusBadge } from "./_components/StatusBadge";
 import { RevealObserver } from "./_components/RevealObserver";
+import { CodeTabs } from "./_components/CodeTabs";
 
 export default function Home() {
   return (
@@ -80,7 +81,21 @@ export default function Home() {
                   Latest indexed block plus indexed-block count. Cheap, cached
                   at the edge for 5 seconds.
                 </p>
-                <pre className="endpoint-example">{`curl https://camp.cargopete.com/v1/status`}</pre>
+                <CodeTabs
+                  examples={{
+                    curl: `curl https://camp.cargopete.com/v1/status`,
+                    js: `const res = await fetch("https://camp.cargopete.com/v1/status");
+const data = await res.json();
+console.log(data.latest_indexed_block);`,
+                    py: `import requests
+data = requests.get("https://camp.cargopete.com/v1/status").json()
+print(data["latest_indexed_block"])`,
+                    rs: `let data: serde_json::Value = reqwest::get(
+    "https://camp.cargopete.com/v1/status"
+).await?.json().await?;
+println!("{}", data["latest_indexed_block"]);`,
+                  }}
+                />
               </article>
 
               {/* signatures */}
@@ -93,7 +108,19 @@ export default function Home() {
                   Reference table of well-known event topic0 hashes →
                   human-readable names. Useful for decoding without an ABI.
                 </p>
-                <pre className="endpoint-example">{`curl https://camp.cargopete.com/v1/signatures`}</pre>
+                <CodeTabs
+                  examples={{
+                    curl: `curl https://camp.cargopete.com/v1/signatures`,
+                    js: `const { signatures } = await fetch(
+  "https://camp.cargopete.com/v1/signatures"
+).then(r => r.json());`,
+                    py: `import requests
+sigs = requests.get("https://camp.cargopete.com/v1/signatures").json()["signatures"]`,
+                    rs: `let v: serde_json::Value = reqwest::get(
+    "https://camp.cargopete.com/v1/signatures"
+).await?.json().await?;`,
+                  }}
+                />
               </article>
 
               {/* transfers */}
@@ -107,10 +134,40 @@ export default function Home() {
                   in a block range, decoded into <code>from</code> /{" "}
                   <code>to</code> / <code>amount_hex</code>.
                 </p>
-                <pre className="endpoint-example">{`# USDC transfers in a 200-block window
+                <CodeTabs
+                  examples={{
+                    curl: `# USDC transfers in a 200-block window
 curl "https://camp.cargopete.com/v1/transfers\\
 ?token=0xaf88d065e77c8cc2239327c5edb3a432268e5831\\
-&from_block=466835663&to_block=466835863&limit=10"`}</pre>
+&from_block=466835663&to_block=466835863&limit=10"`,
+                    js: `const params = new URLSearchParams({
+  token: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+  from_block: "466835663",
+  to_block:   "466835863",
+  limit:      "10",
+});
+const { transfers } = await fetch(
+  \`https://camp.cargopete.com/v1/transfers?\${params}\`
+).then(r => r.json());`,
+                    py: `import requests
+r = requests.get("https://camp.cargopete.com/v1/transfers", params={
+    "token":      "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+    "from_block": 466835663,
+    "to_block":   466835863,
+    "limit":      10,
+})
+transfers = r.json()["transfers"]`,
+                    rs: `let r: serde_json::Value = reqwest::Client::new()
+    .get("https://camp.cargopete.com/v1/transfers")
+    .query(&[
+        ("token",      "0xaf88d065e77c8cc2239327c5edb3a432268e5831"),
+        ("from_block", "466835663"),
+        ("to_block",   "466835863"),
+        ("limit",      "10"),
+    ])
+    .send().await?.json().await?;`,
+                  }}
+                />
               </article>
 
               {/* events */}
@@ -125,10 +182,39 @@ curl "https://camp.cargopete.com/v1/transfers\\
                   narrow on indexed parameters such as <code>from</code> and{" "}
                   <code>to</code>.
                 </p>
-                <pre className="endpoint-example">{`# HorizonStaking events in last 1000 blocks
+                <CodeTabs
+                  examples={{
+                    curl: `# HorizonStaking events in last 1000 blocks
 curl "https://camp.cargopete.com/v1/events\\
 ?address=0x00669a4cf01450b64e8a2a20e9b1fcb71e61ef03\\
-&from_block=466834863&to_block=466835863&limit=20"`}</pre>
+&from_block=466834863&to_block=466835863&limit=20"`,
+                    js: `const params = new URLSearchParams({
+  address:    "0x00669a4cf01450b64e8a2a20e9b1fcb71e61ef03",
+  from_block: "466834863",
+  to_block:   "466835863",
+  limit:      "20",
+});
+const { events } = await fetch(
+  \`https://camp.cargopete.com/v1/events?\${params}\`
+).then(r => r.json());`,
+                    py: `import requests
+events = requests.get("https://camp.cargopete.com/v1/events", params={
+    "address":    "0x00669a4cf01450b64e8a2a20e9b1fcb71e61ef03",
+    "from_block": 466834863,
+    "to_block":   466835863,
+    "limit":      20,
+}).json()["events"]`,
+                    rs: `let r: serde_json::Value = reqwest::Client::new()
+    .get("https://camp.cargopete.com/v1/events")
+    .query(&[
+        ("address",    "0x00669a4cf01450b64e8a2a20e9b1fcb71e61ef03"),
+        ("from_block", "466834863"),
+        ("to_block",   "466835863"),
+        ("limit",      "20"),
+    ])
+    .send().await?.json().await?;`,
+                  }}
+                />
               </article>
             </div>
           </div>
@@ -156,7 +242,20 @@ curl "https://camp.cargopete.com/v1/events\\
                   Block header, every transaction in it, every log emitted —
                   one request, three parallel queries.
                 </p>
-                <pre className="endpoint-example">{`curl https://camp.cargopete.com/v1/block/466862035`}</pre>
+                <CodeTabs
+                  examples={{
+                    curl: `curl https://camp.cargopete.com/v1/block/466862035`,
+                    js: `const { block, transactions, logs } = await fetch(
+  "https://camp.cargopete.com/v1/block/466862035"
+).then(r => r.json());`,
+                    py: `import requests
+b = requests.get("https://camp.cargopete.com/v1/block/466862035").json()
+print(len(b["transactions"]), "txs", len(b["logs"]), "logs")`,
+                    rs: `let b: serde_json::Value = reqwest::get(
+    "https://camp.cargopete.com/v1/block/466862035"
+).await?.json().await?;`,
+                  }}
+                />
               </article>
 
               {/* tx */}
@@ -170,7 +269,22 @@ curl "https://camp.cargopete.com/v1/events\\
                   100 k blocks by default; override with{" "}
                   <code>from_block</code> / <code>to_block</code>.
                 </p>
-                <pre className="endpoint-example">{`curl https://camp.cargopete.com/v1/tx/0x7b73…7481`}</pre>
+                <CodeTabs
+                  examples={{
+                    curl: `curl https://camp.cargopete.com/v1/tx/0x7b73bf8545d992e6ee95bcb082e2fc1628413c42cfca2302da2cc649a51a7481`,
+                    js: `const hash = "0x7b73bf8545d992e6ee95bcb082e2fc1628413c42cfca2302da2cc649a51a7481";
+const { transaction, logs } = await fetch(
+  \`https://camp.cargopete.com/v1/tx/\${hash}\`
+).then(r => r.json());`,
+                    py: `import requests
+h = "0x7b73bf8545d992e6ee95bcb082e2fc1628413c42cfca2302da2cc649a51a7481"
+tx = requests.get(f"https://camp.cargopete.com/v1/tx/{h}").json()`,
+                    rs: `let h = "0x7b73bf8545d992e6ee95bcb082e2fc1628413c42cfca2302da2cc649a51a7481";
+let tx: serde_json::Value = reqwest::get(
+    format!("https://camp.cargopete.com/v1/tx/{}", h)
+).await?.json().await?;`,
+                  }}
+                />
               </article>
 
               {/* address tx */}
@@ -184,9 +298,44 @@ curl "https://camp.cargopete.com/v1/events\\
                   <code>from</code> or <code>to</code>, in a block range.
                   Direction defaults to <code>all</code>.
                 </p>
-                <pre className="endpoint-example">{`# Outbound txs for an address in the last ~hour
-curl "https://camp.cargopete.com/v1/address/0xe8d294…a462/tx\\
-?from_block=466840000&to_block=466856000&direction=from&limit=25"`}</pre>
+                <CodeTabs
+                  examples={{
+                    curl: `# Outbound txs for an address in the last ~hour
+curl "https://camp.cargopete.com/v1/address/0xe8d294f3fff2a5cb34d15ecdef34a53b01f5a462/tx\\
+?from_block=466840000&to_block=466856000&direction=from&limit=25"`,
+                    js: `const addr = "0xe8d294f3fff2a5cb34d15ecdef34a53b01f5a462";
+const params = new URLSearchParams({
+  from_block: "466840000",
+  to_block:   "466856000",
+  direction:  "from",
+  limit:      "25",
+});
+const { transactions } = await fetch(
+  \`https://camp.cargopete.com/v1/address/\${addr}/tx?\${params}\`
+).then(r => r.json());`,
+                    py: `import requests
+addr = "0xe8d294f3fff2a5cb34d15ecdef34a53b01f5a462"
+txs = requests.get(
+    f"https://camp.cargopete.com/v1/address/{addr}/tx",
+    params={
+        "from_block": 466840000,
+        "to_block":   466856000,
+        "direction":  "from",
+        "limit":      25,
+    },
+).json()["transactions"]`,
+                    rs: `let addr = "0xe8d294f3fff2a5cb34d15ecdef34a53b01f5a462";
+let r: serde_json::Value = reqwest::Client::new()
+    .get(format!("https://camp.cargopete.com/v1/address/{}/tx", addr))
+    .query(&[
+        ("from_block", "466840000"),
+        ("to_block",   "466856000"),
+        ("direction",  "from"),
+        ("limit",      "25"),
+    ])
+    .send().await?.json().await?;`,
+                  }}
+                />
               </article>
 
               {/* address transfers */}
@@ -200,10 +349,54 @@ curl "https://camp.cargopete.com/v1/address/0xe8d294…a462/tx\\
                   decoded. Optionally scope to a single <code>token</code>{" "}
                   contract.
                 </p>
-                <pre className="endpoint-example">{`# Inbound USDC transfers to a wallet
-curl "https://camp.cargopete.com/v1/address/0xe8d294…a462/transfers\\
+                <CodeTabs
+                  examples={{
+                    curl: `# Inbound USDC transfers to a wallet
+curl "https://camp.cargopete.com/v1/address/0xe8d294f3fff2a5cb34d15ecdef34a53b01f5a462/transfers\\
 ?token=0xaf88d065e77c8cc2239327c5edb3a432268e5831\\
-&from_block=466840000&to_block=466856000&direction=in&limit=25"`}</pre>
+&from_block=466840000&to_block=466856000&direction=in&limit=25"`,
+                    js: `const addr  = "0xe8d294f3fff2a5cb34d15ecdef34a53b01f5a462";
+const token = "0xaf88d065e77c8cc2239327c5edb3a432268e5831";
+const params = new URLSearchParams({
+  token,
+  from_block: "466840000",
+  to_block:   "466856000",
+  direction:  "in",
+  limit:      "25",
+});
+const { transfers } = await fetch(
+  \`https://camp.cargopete.com/v1/address/\${addr}/transfers?\${params}\`
+).then(r => r.json());`,
+                    py: `import requests
+addr  = "0xe8d294f3fff2a5cb34d15ecdef34a53b01f5a462"
+token = "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+xfers = requests.get(
+    f"https://camp.cargopete.com/v1/address/{addr}/transfers",
+    params={
+        "token":      token,
+        "from_block": 466840000,
+        "to_block":   466856000,
+        "direction":  "in",
+        "limit":      25,
+    },
+).json()["transfers"]`,
+                    rs: `let addr  = "0xe8d294f3fff2a5cb34d15ecdef34a53b01f5a462";
+let token = "0xaf88d065e77c8cc2239327c5edb3a432268e5831";
+let r: serde_json::Value = reqwest::Client::new()
+    .get(format!(
+        "https://camp.cargopete.com/v1/address/{}/transfers",
+        addr
+    ))
+    .query(&[
+        ("token",      token),
+        ("from_block", "466840000"),
+        ("to_block",   "466856000"),
+        ("direction",  "in"),
+        ("limit",      "25"),
+    ])
+    .send().await?.json().await?;`,
+                  }}
+                />
               </article>
             </div>
           </div>
