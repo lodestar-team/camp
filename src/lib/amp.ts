@@ -71,3 +71,10 @@ export function hexLiteral(hex: string): string {
 export function hexCol(col: string): string {
   return `encode(arrow_cast(${col}, 'Binary'), 'hex')`;
 }
+
+export async function fetchTip(): Promise<number> {
+  const rows = await ampQuery(
+    `SELECT MAX(block_num) AS tip FROM ${table("blocks")}`,
+  );
+  return Number(rows[0]?.tip ?? 0);
+}

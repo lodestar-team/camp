@@ -25,3 +25,12 @@ export const rangeParams = z
   );
 
 export const limitParam = z.coerce.number().int().min(1).max(1000).default(100);
+
+export const blockNumParam = z.coerce.number().int().nonnegative();
+export const txHashParam = hex(32);
+
+// Pad a 20-byte address to a 32-byte topic value (12 leading zero bytes).
+export function addressToTopic(addr: string): string {
+  const lower = addr.toLowerCase().replace(/^0x/, "");
+  return `0x${"0".repeat(24)}${lower}`;
+}

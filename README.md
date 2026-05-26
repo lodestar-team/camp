@@ -57,6 +57,17 @@ Point `AMP_ORIGIN` at `http://localhost:1604` when running against a local ampd.
 | `UPSTASH_REDIS_REST_URL` | Redis REST URL (self-hosted shim or Upstash); enables rate limiting |
 | `UPSTASH_REDIS_REST_TOKEN` | Bearer token the Redis REST endpoint expects |
 
+## Roadmap
+
+Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Highlights:
+
+- **Phase 1** — more lookups against existing data: `/v1/block`, `/v1/tx`, `/v1/address/*/tx`, `/v1/address/*/transfers`, gas time-series, contract activity, whale-Transfer feed
+- **Phase 2** — aggregates that need SQL primitive verification: token volume / holders, address interactions
+- **Phase 3** — anonymous tokens + raw `POST /v1/sql` behind cost-based budget
+- **Phase 4** — decoded tables for the top ~20 Arbitrum protocols (Uniswap, Aave, GMX, Stargate, Graph Horizon, etc.)
+- **Phase 5** — saved-query share URLs, CSV/Arrow export, webhooks/SSE, OpenAPI client
+- **Phase 6** — USD prices, ENS labels, eventually a second chain
+
 ## Deploys
 
 The Vercel project isn't Git-connected — deploys happen via `vercel --prod` from a local checkout. Automation in the ops repo redeploys automatically whenever the origin tunnel URL rotates.
