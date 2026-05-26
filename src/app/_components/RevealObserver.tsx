@@ -6,10 +6,14 @@ export function RevealObserver() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const els = document.querySelectorAll<HTMLElement>(".reveal");
-    if (!("IntersectionObserver" in window) || els.length === 0) {
-      els.forEach((el) => el.classList.add("in"));
-      return;
-    }
+    if (!("IntersectionObserver" in window) || els.length === 0) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+
+    // Arm only after JS load — keeps content visible for crawlers and
+    // for users with JS disabled.
+    els.forEach((el) => el.classList.add("armed"));
+
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
