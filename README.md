@@ -1,6 +1,6 @@
 # camp
 
-Community [**Amp**](https://github.com/edgeandnode/amp) node for Arbitrum One. A free REST gateway over indexed blocks, transactions, and events — no signup, no API key, sub-second query latency on typical filters.
+Community **Amp** node for Arbitrum One. A free REST gateway over indexed blocks, transactions, and events — no signup, no API key, sub-second query latency on typical filters.
 
 Live at **https://camp.cargopete.com**.
 

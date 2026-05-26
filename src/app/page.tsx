@@ -37,9 +37,7 @@ export default function Home() {
           </h1>
           <p className="lede">
             A community{" "}
-            <a href="https://github.com/edgeandnode/amp" target="_blank" rel="noreferrer">
-              Amp
-            </a>{" "}
+            Amp{" "}
             node for Arbitrum One. Read blocks, transactions, and decoded events
             through a small REST API — free, no signup, no API key. Indexed at
             chain tip; query latency under a second on typical filters.
@@ -294,9 +292,7 @@ arbitrum one rpc`}
               source
             </a>{" "}
             ·{" "}
-            <a href="https://github.com/edgeandnode/amp" target="_blank" rel="noreferrer">
-              powered by Amp
-            </a>
+            powered by Amp
           </span>
         </footer>
       </main>
