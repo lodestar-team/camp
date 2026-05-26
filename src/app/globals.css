@@ -331,6 +331,7 @@ section.block {
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
+  align-items: flex-end;
 }
 .code-tabs-tab {
   font-family: var(--font-mono);
@@ -357,6 +358,28 @@ section.block {
   border-top-left-radius: 0;
   position: relative;
   z-index: 1;
+}
+.code-tabs-copy {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  color: var(--text-subtle);
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+.code-tabs-copy:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+.code-tabs-copy.copied {
+  color: var(--accent);
+  border-color: transparent;
 }
 
 /* ─── architecture diagram ─── */
