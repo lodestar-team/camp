@@ -3,11 +3,13 @@ import { ampQuery, hexCol, hexLiteral, table } from "@/lib/amp";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { handle, ApiError } from "@/lib/errors";
 import { addressParam, rangeParams, limitParam, addressToTopic } from "@/lib/validate";
-import { TRANSFER_TOPIC0 } from "@/lib/signatures";
 import { cacheHeadersFor } from "@/lib/cache";
 
 export const runtime = "nodejs";
 export const maxDuration = 10;
+
+const TRANSFER_SIG =
+  "Transfer(address indexed from, address indexed to, uint256 value)";
 
 type RouteContext = { params: Promise<{ addr: string }> };
 
@@ -42,7 +44,7 @@ export async function GET(req: Request, ctx: RouteContext) {
 
     const filters: string[] = [
       `block_num BETWEEN ${range.from_block} AND ${range.to_block}`,
-      `topic0 = ${hexLiteral(TRANSFER_TOPIC0)}`,
+      `topic0 = evm_topic('Transfer(address,address,uint256)')`,
       topicFilter,
     ];
     if (tokenAddr) filters.push(`address = ${hexLiteral(tokenAddr)}`);
@@ -52,24 +54,31 @@ export async function GET(req: Request, ctx: RouteContext) {
         block_num,
         log_index,
         ${hexCol("tx_hash")} AS tx_hash,
-        ${hexCol("address")} AS token,
-        ${hexCol("topic1")}  AS from_padded,
-        ${hexCol("topic2")}  AS to_padded,
-        encode(data, 'hex')  AS amount_hex
-      FROM ${table("logs")}
-      WHERE ${filters.join(" AND ")}
+        ${hexCol("token_addr")} AS token,
+        d['from']  AS from_addr,
+        d['to']    AS to_addr,
+        d['value'] AS value
+      FROM (
+        SELECT
+          block_num, log_index, tx_hash, address AS token_addr,
+          (evm_decode_log(topic1, topic2, topic3, data,
+            '${TRANSFER_SIG}')) AS d
+        FROM ${table("logs")}
+        WHERE ${filters.join(" AND ")}
+      )
       ORDER BY block_num DESC, log_index DESC
       LIMIT ${limit}
-    `;
+    `.trim();
+
     const rows = await ampQuery(sql);
     const transfers = rows.map((r) => ({
       block_num: Number(r.block_num),
       log_index: Number(r.log_index),
       tx_hash: `0x${r.tx_hash}`,
       token: `0x${r.token}`,
-      from: paddedToAddress(r.from_padded as string | null),
-      to: paddedToAddress(r.to_padded as string | null),
-      amount_hex: `0x${r.amount_hex ?? ""}`,
+      from: `0x${r.from_addr}`,
+      to: `0x${r.to_addr}`,
+      value: r.value as string,
     }));
 
     return NextResponse.json(
@@ -87,9 +96,4 @@ export async function GET(req: Request, ctx: RouteContext) {
     }
     return handle(e);
   }
-}
-
-function paddedToAddress(padded: string | null): string | null {
-  if (!padded) return null;
-  return `0x${padded.slice(-40)}`;
 }
