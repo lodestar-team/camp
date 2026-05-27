@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: camp
-  version: 0.1.0
+  version: 0.2.0
   summary: Free Dune-class data API for Arbitrum One.
   description: |
     Decoded protocol tables and raw EVM data for Arbitrum One, served from a
