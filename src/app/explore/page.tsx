@@ -1,4 +1,5 @@
 import { Nav } from "../_components/Nav";
+import { LiveBlocks } from "../_components/LiveBlocks";
 
 export const metadata = {
   title: "explore · camp",
@@ -47,6 +48,10 @@ export default function ExploreIndex() {
             requests against the endpoints listed on the home page — view
             source if you want to make your own.
           </p>
+        </section>
+
+        <section className="container" style={{ paddingBottom: 40 }}>
+          <LiveBlocks />
         </section>
 
         <section className="container" style={{ paddingBottom: 96 }}>
