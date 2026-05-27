@@ -181,6 +181,9 @@ button {
 }
 .status-pill[data-state="down"] { color: #b34a3a; border-color: #b34a3a40; }
 .status-pill[data-state="loading"] { color: var(--text-subtle); }
+.status-depth { color: var(--text-subtle); margin-left: 2px; }
+.inline-link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.inline-link:hover { color: var(--text); }
 @keyframes live-pulse {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); }
   50%      { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }

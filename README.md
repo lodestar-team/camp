@@ -74,14 +74,18 @@ camp.cargopete.com                  (edge: TLS, DDoS, CDN cache)
 Cloudflare Quick Tunnel             (private origin link;
   ↓                                  URL auto-rotates and re-syncs to Vercel env)
 nginx :1604                         (shared-secret + Redis rate limit)
-  ├─ /         → ampd JSONL :1603   (token-gated SQL)
+  ├─ /         → Flight shim :1606  (JSONL ⇆ Arrow Flight bridge)
   ├─ /srh/     → Redis HTTP shim    (rate-limit state)
   └─ /healthz
   ↓
-ampd  (Arbitrum One indexer; parquet on local SSD)
+ampd v0.0.36  (Arbitrum One indexer; Flight on :16021; parquet on local SSD)
 ```
 
-The ampd node, Redis shim, nginx, and the cloudflared tunnel live in a separate ops repo. This project is the public-facing Vercel gateway only.
+The ampd node, Flight shim, Redis shim, nginx, and the cloudflared tunnel live in a separate ops repo. This project is the public-facing Vercel gateway only.
+
+### Data freshness
+
+History rebuilds forward from **2026-05-27** (a clean cutover from ampd v0.0.35 → v0.0.36, since the metadata schema isn't downgrade-safe). The window grows by ~24 h every calendar day until it caps at a rolling 30 d. Live depth is on every `/v1/status` response (`history_seconds`, `earliest_indexed_at`).
 
 ## Local dev
 

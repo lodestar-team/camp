@@ -43,6 +43,15 @@ export default function Home() {
             through a small REST API — free, no signup, no API key. Indexed at
             chain tip; query latency under a second on typical filters.
           </p>
+          <p className="lede" style={{ marginTop: 8, color: "var(--text-muted)", fontSize: "0.92em" }}>
+            History rebuilds forward from <strong>2026-05-27</strong>. The
+            usable window grows by ~24 h every calendar day; eventually a
+            rolling ~30 d view.{" "}
+            <a href="/v1/status" className="inline-link">
+              See live depth
+            </a>
+            .
+          </p>
           <div className="cta-row">
             <a className="btn btn-primary" href="/explore">
               Explore live dashboards
