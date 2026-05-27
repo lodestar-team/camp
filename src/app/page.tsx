@@ -1,6 +1,7 @@
 import { RevealObserver } from "./_components/RevealObserver";
 import { CodeTabs } from "./_components/CodeTabs";
 import { Nav } from "./_components/Nav";
+import { LiveDepth } from "./_components/LiveDepth";
 
 export default function Home() {
   return (
@@ -25,11 +26,9 @@ export default function Home() {
           <p className="lede" style={{ marginTop: 8, color: "var(--text-muted)", fontSize: "0.92em" }}>
             History rebuilds forward from <strong>2026-05-27</strong>. The
             usable window grows by ~24 h every calendar day; eventually a
-            rolling ~30 d view.{" "}
-            <a href="/v1/status" className="inline-link">
-              See live depth
-            </a>
-            .
+            rolling ~30 d view.
+            <br />
+            Live depth: <LiveDepth />
           </p>
           <div className="cta-row">
             <a className="btn btn-primary" href="/explore">

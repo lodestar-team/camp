@@ -22,14 +22,15 @@ type TransferRow = {
   value: string;
 };
 type InteractionRow = {
-  address: string;
-  call_count: number;
+  contract: string;
+  tx_count: number;
+  first_block: number;
   last_block: number;
 };
 
 type TxRes = { count: number; transactions: TxRow[] };
 type TransferRes = { count: number; transfers: TransferRow[] };
-type InteractionRes = { count: number; contracts: InteractionRow[] };
+type InteractionRes = { count: number; interactions: InteractionRow[] };
 
 type Tab = "tx" | "transfers" | "interactions";
 
@@ -167,7 +168,7 @@ export function AddressDashboard() {
         ) : tab === "transfers" ? (
           <TransferTable rows={data.transfers?.transfers ?? []} />
         ) : (
-          <InteractionsTable rows={data.interactions?.contracts ?? []} />
+          <InteractionsTable rows={data.interactions?.interactions ?? []} />
         )}
       </div>
     </>
@@ -247,24 +248,26 @@ function InteractionsTable({ rows }: { rows: InteractionRow[] }) {
         <thead>
           <tr>
             <th>contract</th>
-            <th>calls</th>
+            <th>txs</th>
+            <th>first_block</th>
             <th>last_block</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.address}>
+            <tr key={r.contract}>
               <td>
                 <a
-                  href={`https://arbiscan.io/address/${r.address}`}
+                  href={`https://arbiscan.io/address/${r.contract}`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-link"
                 >
-                  {short(r.address)}
+                  {short(r.contract)}
                 </a>
               </td>
-              <td>{r.call_count.toLocaleString()}</td>
+              <td>{r.tx_count.toLocaleString()}</td>
+              <td>{r.first_block.toLocaleString()}</td>
               <td>{r.last_block.toLocaleString()}</td>
             </tr>
           ))}

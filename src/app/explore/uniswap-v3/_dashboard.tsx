@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type AnyRow = Record<string, string | number | null>;
-type Response = { count: number; rows: AnyRow[] };
+type Response = { event: string; pool: string; count: number; events: AnyRow[] };
 type Status = { latest_indexed_block: number };
 
 const POOLS = [
@@ -79,8 +79,8 @@ export function UniswapV3Dashboard() {
   }, [activePool, event]);
 
   const columns = useMemo(() => {
-    if (!data || data.rows.length === 0) return [];
-    return Object.keys(data.rows[0]!);
+    if (!data || data.events.length === 0) return [];
+    return Object.keys(data.events[0]!);
   }, [data]);
 
   return (
@@ -144,7 +144,7 @@ export function UniswapV3Dashboard() {
         <p style={{ color: "#b34a3a" }}>{error}</p>
       ) : !data ? (
         <p style={{ color: "var(--text-subtle)" }}>Loading…</p>
-      ) : data.rows.length === 0 ? (
+      ) : data.events.length === 0 ? (
         <p style={{ color: "var(--text-subtle)" }}>
           No <strong>{event}</strong> events found in the last ~5k blocks for this pool.
         </p>
@@ -159,7 +159,7 @@ export function UniswapV3Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {data.rows.map((row, i) => (
+              {data.events.map((row, i) => (
                 <tr key={i}>
                   {columns.map((c) => {
                     const v = row[c];
