@@ -50,7 +50,6 @@ function fmt(value: string, decimals: number, symbol: string): string {
     const wholeStr = whole.toString();
     // Show 2 decimals for stablecoins, 4 for WETH
     const decimalsShown = decimals === 18 ? 4 : 2;
-    if (decimalsShown === 0) return `${wholeStr} ${symbol}`;
     const fracStr = frac.toString().padStart(decimals, "0").slice(0, decimalsShown);
     // Add thousands separator
     const wholeWithCommas = wholeStr.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
