@@ -53,10 +53,16 @@ The `arrow_cast(Binary, Decimal128)` block went away because `evm_decode_log` re
 Server-rendered pages that demo what the API can do.
 
 - [x] `/explore` — index, with live blocks panel
-- [x] `/explore/horizon` — timeline of decoded Horizon events with severity accents
-- [x] `/explore/gas` — base-fee + throughput SVG charts
-- [x] `/explore/whales` — big-Transfer ticker, token + min-value switcher
 - [x] `/explore/sql` — Dune-style SQL playground (canned examples, ⌘+↩ to run)
+- [x] `/explore/uniswap-v3` — pool picker + decoded swap/mint/burn timeline
+- [x] `/explore/horizon` — timeline of decoded Horizon events with severity accents
+- [x] `/explore/whales` — big-Transfer ticker, token + min-value switcher
+- [x] `/explore/gas` — base-fee + throughput charts
+- [x] `/explore/token` — bucketed volume chart + recent transfers tape
+- [x] `/explore/address` — wallet profile (tx + transfers + interactions)
+- [x] `/explore/contract` — log-count time-series
+- [x] `/explore/lookup` — ad-hoc block / tx / events forms
+- [x] `/explore/signatures` — well-known topic0 reference
 - [ ] OG / share images for each dashboard *(deferred)*
 
 ---

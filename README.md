@@ -57,12 +57,18 @@ OpenAPI 3.1 spec at [`/openapi.yaml`](https://camp.cargopete.com/openapi.yaml); 
 
 ## Dashboards
 
-[`/explore`](https://camp.cargopete.com/explore) hosts server-rendered pages that demo what the API can do:
+[`/explore`](https://camp.cargopete.com/explore) — one UI surface for every v1 endpoint:
 
 - [`/explore/sql`](https://camp.cargopete.com/explore/sql) — Dune-style SQL playground with canned examples
-- [`/explore/gas`](https://camp.cargopete.com/explore/gas) — live base-fee + throughput charts
-- [`/explore/whales`](https://camp.cargopete.com/explore/whales) — live big-Transfer ticker, token switcher
+- [`/explore/uniswap-v3`](https://camp.cargopete.com/explore/uniswap-v3) — decoded swap/mint/burn per pool
 - [`/explore/horizon`](https://camp.cargopete.com/explore/horizon) — Graph Horizon timeline with severity accents
+- [`/explore/whales`](https://camp.cargopete.com/explore/whales) — live big-Transfer ticker across the major tokens
+- [`/explore/gas`](https://camp.cargopete.com/explore/gas) — base-fee + throughput charts
+- [`/explore/token`](https://camp.cargopete.com/explore/token) — bucketed volume + recent transfers for any ERC-20
+- [`/explore/address`](https://camp.cargopete.com/explore/address) — wallet profile (tx + transfers + interactions)
+- [`/explore/contract`](https://camp.cargopete.com/explore/contract) — log-count time-series for any contract
+- [`/explore/lookup`](https://camp.cargopete.com/explore/lookup) — ad-hoc block / tx / events forms
+- [`/explore/signatures`](https://camp.cargopete.com/explore/signatures) — well-known topic0 reference
 
 ## Architecture
 
@@ -101,7 +107,7 @@ Point `AMP_ORIGIN` at `http://localhost:1604` when running against a local ampd.
 
 | Var | Purpose |
 |-----|---------|
-| `AMP_ORIGIN` | Base URL of the ampd JSONL endpoint (via tunnel in prod) |
+| `AMP_ORIGIN` | Base URL of the JSONL-compatible origin (the Flight shim in prod, ampd JSONL in local dev) |
 | `AMP_TOKEN` | Shared secret nginx expects in `X-Amp-Token` |
 | `AMP_DATASET` | Fully-qualified dataset@version, e.g. `_/arbitrum_one@2.0.0` |
 | `AMP_QUERY_TIMEOUT_MS` | Per-query hard cap, must be < Vercel function timeout (8000 default) |
@@ -114,8 +120,10 @@ Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 
 - **Phase 1** ✅ Lookups + cheap aggregates over raw tables
 - **Phase A** ✅ Decoded protocol data — Graph Horizon (12 events) + Uniswap V3 (swap/mint/burn) via `evm_decode_log`
-- **Phase B** ✅ `/explore` dashboards — SQL playground, gas, whales, Horizon timeline
+- **Phase B** ✅ `/explore` dashboards — 10 server-rendered views, one per endpoint family
 - **Phase C** ✅ Raw `POST /v1/sql`, `/v1/datasets` catalog, `/v1/stream/blocks` SSE
+- **Phase D** ✅ OpenAPI 3.1 spec + `/docs` reference (Scalar)
+- **Phase E** ✅ Flight-native origin — ampd v0.0.36 behind a JSONL ⇆ Flight shim; working compactor
 - **Next** Anonymous tokens for higher per-user limits, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, webhooks.
 
 ## Deploys
