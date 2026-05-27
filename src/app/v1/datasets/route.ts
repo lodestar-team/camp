@@ -135,6 +135,11 @@ export async function GET() {
       streams: [
         { url: "/v1/stream/blocks", description: "live block headers as they're indexed (SSE)" },
       ],
+      openapi: {
+        url: "/openapi.yaml",
+        version: "3.1.0",
+        docs: "/docs",
+      },
     },
     {
       headers: { "Cache-Control": "public, max-age=300, s-maxage=300" },

@@ -1,0 +1,669 @@
+openapi: 3.1.0
+info:
+  title: camp
+  version: 0.1.0
+  summary: Free Dune-class data API for Arbitrum One.
+  description: |
+    Decoded protocol tables and raw EVM data for Arbitrum One, served from a
+    self-hosted Amp node. No signup, no API key. Rate-limited at 30/min and
+    500/hour per IP.
+
+    Live UI and dashboards: https://camp.cargopete.com/explore
+  license:
+    name: MIT
+    url: https://github.com/lodestar-team/camp/blob/main/LICENSE
+  contact:
+    name: camp
+    url: https://camp.cargopete.com
+
+servers:
+  - url: https://camp.cargopete.com
+    description: Production
+
+tags:
+  - name: status
+    description: Engine + dataset state
+  - name: lookups
+    description: Block / tx / address queries
+  - name: decoded
+    description: Decoded protocol tables (Transfer, Horizon, Uniswap V3)
+  - name: aggregates
+    description: Time-bucketed series
+  - name: discovery
+    description: Self-describing surface metadata
+  - name: sql
+    description: Raw SELECT against the underlying tables
+  - name: streams
+    description: Server-Sent Events feeds
+
+paths:
+  /v1/status:
+    get:
+      tags: [status]
+      summary: Engine sync state
+      operationId: getStatus
+      responses:
+        "200":
+          description: Tip block + indexed block count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+
+  /v1/signatures:
+    get:
+      tags: [lookups]
+      summary: Well-known event topic0 reference
+      operationId: getSignatures
+      responses:
+        "200":
+          description: Static topic0 ↔ signature catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Signatures"
+
+  /v1/transfers:
+    get:
+      tags: [decoded]
+      summary: Decoded ERC-20/721 Transfer events for a token
+      operationId: getTransfers
+      parameters:
+        - $ref: "#/components/parameters/TokenAddress"
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Decoded Transfer rows (from / to / value)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransfersResponse"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/events:
+    get:
+      tags: [lookups]
+      summary: Generic log filter by address / topics
+      operationId: getEvents
+      parameters:
+        - name: address
+          in: query
+          schema: { $ref: "#/components/schemas/EvmAddress" }
+        - name: topic0
+          in: query
+          schema: { $ref: "#/components/schemas/Topic32" }
+        - name: topic1
+          in: query
+          schema: { $ref: "#/components/schemas/Topic32" }
+        - name: topic2
+          in: query
+          schema: { $ref: "#/components/schemas/Topic32" }
+        - name: topic3
+          in: query
+          schema: { $ref: "#/components/schemas/Topic32" }
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Raw log rows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /v1/block/{n}:
+    get:
+      tags: [lookups]
+      summary: Full block — header + every tx + every log
+      operationId: getBlock
+      parameters:
+        - name: n
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 0 }
+      responses:
+        "200":
+          description: One block, fully expanded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockResponse"
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/tx/{hash}:
+    get:
+      tags: [lookups]
+      summary: Transaction + receipt + emitted logs
+      operationId: getTx
+      parameters:
+        - name: hash
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Hex32" }
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+      responses:
+        "200":
+          description: Tx and its logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TxResponse"
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/address/{addr}/tx:
+    get:
+      tags: [lookups]
+      summary: Transactions where address is `from`, `to`, or both
+      operationId: getAddressTx
+      parameters:
+        - $ref: "#/components/parameters/PathAddress"
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - name: direction
+          in: query
+          schema: { type: string, enum: [from, to, all], default: all }
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Transactions touching the address
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AddressTxResponse" }
+
+  /v1/address/{addr}/transfers:
+    get:
+      tags: [decoded]
+      summary: ERC-20 transfers into or out of an address
+      operationId: getAddressTransfers
+      parameters:
+        - $ref: "#/components/parameters/PathAddress"
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - name: direction
+          in: query
+          schema: { type: string, enum: [in, out, all], default: all }
+        - name: token
+          in: query
+          description: Optional token filter
+          schema: { $ref: "#/components/schemas/EvmAddress" }
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Decoded transfers
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransfersResponse" }
+
+  /v1/address/{addr}/interactions:
+    get:
+      tags: [aggregates]
+      summary: Distinct contracts an address has called
+      operationId: getAddressInteractions
+      parameters:
+        - $ref: "#/components/parameters/PathAddress"
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Contracts the address called and call counts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InteractionsResponse" }
+
+  /v1/gas/blocks:
+    get:
+      tags: [aggregates]
+      summary: Gas / base-fee / throughput time-series
+      operationId: getGasBlocks
+      parameters:
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Bucket"
+      responses:
+        "200":
+          description: Per-bucket gas + base-fee stats
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GasBlocksResponse" }
+
+  /v1/contract/{addr}/activity:
+    get:
+      tags: [aggregates]
+      summary: Log-count time-series for a contract
+      operationId: getContractActivity
+      parameters:
+        - $ref: "#/components/parameters/PathAddress"
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Bucket"
+      responses:
+        "200":
+          description: Logs emitted per bucket
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActivityResponse" }
+
+  /v1/token/{addr}/volume:
+    get:
+      tags: [aggregates]
+      summary: Token transfer volume per bucket
+      operationId: getTokenVolume
+      parameters:
+        - $ref: "#/components/parameters/PathAddress"
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Bucket"
+      responses:
+        "200":
+          description: Sum of decoded Transfer values per bucket
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VolumeResponse" }
+
+  /v1/whales/transfers:
+    get:
+      tags: [decoded]
+      summary: Big-Transfer feed for any token
+      operationId: getWhales
+      parameters:
+        - $ref: "#/components/parameters/TokenAddress"
+        - name: min_value
+          in: query
+          required: true
+          description: Minimum Transfer value (decimal uint256 as string)
+          schema: { type: string, pattern: "^[0-9]+$" }
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Filtered decoded Transfers
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransfersResponse" }
+
+  /v1/horizon:
+    get:
+      tags: [decoded]
+      summary: Graph Horizon decoded-event catalog
+      operationId: getHorizonCatalog
+      responses:
+        "200":
+          description: List of supported Horizon events
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProtocolCatalog" }
+
+  /v1/horizon/{event}:
+    get:
+      tags: [decoded]
+      summary: Decoded Graph Horizon events of one kind
+      operationId: getHorizonEvent
+      parameters:
+        - name: event
+          in: path
+          required: true
+          description: |
+            Event slug. One of: horizon-stake-deposited, horizon-stake-locked,
+            horizon-stake-withdrawn, provision-created, provision-increased,
+            provision-thawed, tokens-deprovisioned, provision-slashed,
+            tokens-delegated, tokens-undelegated, delegated-tokens-withdrawn,
+            delegation-slashed.
+          schema: { type: string }
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Decoded Horizon rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecodedEventResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/uniswap-v3:
+    get:
+      tags: [decoded]
+      summary: Uniswap V3 decoded-event catalog
+      operationId: getUniV3Catalog
+      responses:
+        "200":
+          description: List of supported events (swap, mint, burn)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProtocolCatalog" }
+
+  /v1/uniswap-v3/{event}:
+    get:
+      tags: [decoded]
+      summary: Decoded Uniswap V3 events for one pool
+      operationId: getUniV3Event
+      parameters:
+        - name: event
+          in: path
+          required: true
+          schema: { type: string, enum: [swap, mint, burn] }
+        - name: pool
+          in: query
+          required: true
+          description: Pool contract address
+          schema: { $ref: "#/components/schemas/EvmAddress" }
+        - $ref: "#/components/parameters/FromBlock"
+        - $ref: "#/components/parameters/ToBlock"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Decoded swap / mint / burn rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecodedEventResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/sql:
+    get:
+      tags: [sql]
+      summary: SQL endpoint contract — tables, UDFs, examples
+      operationId: getSqlContract
+      responses:
+        "200":
+          description: Self-describing payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SqlContract" }
+    post:
+      tags: [sql]
+      summary: Run a SELECT query
+      description: |
+        DataFusion-flavoured SELECT against the indexed tables. Defense in depth:
+        SELECT-only (regex denylist for DDL / system catalogs / multi-statement),
+        must include a `block_num` filter, hard `LIMIT 1000`, 8 s timeout, 4 KB
+        max body. Table names must be fully qualified (e.g. `"_/arbitrum_one@2.0.0".blocks`).
+      operationId: postSql
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  example: 'SELECT block_num, gas_used FROM "_/arbitrum_one@2.0.0".blocks WHERE block_num BETWEEN 467200000 AND 467200010 ORDER BY block_num'
+      responses:
+        "200":
+          description: Query rows + count + elapsed time
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SqlResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "413":
+          description: SQL body exceeded 4 KB
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "504":
+          description: Query exceeded 8 s
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
+  /v1/datasets:
+    get:
+      tags: [discovery]
+      summary: Programmatic surface — raw + decoded + lookups + aggregates
+      operationId: getDatasets
+      responses:
+        "200":
+          description: Self-describing dataset catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /v1/stream/blocks:
+    get:
+      tags: [streams]
+      summary: SSE stream of new blocks
+      description: |
+        Server-Sent Events feed. Each event has `event: block` and `data:
+        {block_num, timestamp, gas_used, base_fee_per_gas}`. Backend polls
+        every 2 s. The connection auto-closes after 5 minutes — clients
+        should reconnect (the browser EventSource does this automatically).
+      operationId: streamBlocks
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  : connected
+
+                  event: block
+                  data: {"block_num":467200781,"timestamp":1779881400000,"gas_used":1182335,"base_fee_per_gas":"20026000"}
+
+components:
+  parameters:
+    FromBlock:
+      name: from_block
+      in: query
+      required: true
+      schema: { type: integer, format: int64, minimum: 0 }
+    ToBlock:
+      name: to_block
+      in: query
+      required: true
+      description: Inclusive. The span `to_block - from_block` cannot exceed 100,000.
+      schema: { type: integer, format: int64, minimum: 0 }
+    Limit:
+      name: limit
+      in: query
+      description: Rows returned. Max 1000.
+      schema: { type: integer, minimum: 1, maximum: 1000, default: 100 }
+    Bucket:
+      name: bucket
+      in: query
+      schema: { type: string, enum: [minute, hour, day], default: hour }
+    TokenAddress:
+      name: token
+      in: query
+      required: true
+      schema: { $ref: "#/components/schemas/EvmAddress" }
+    PathAddress:
+      name: addr
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/EvmAddress" }
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    RateLimited:
+      description: |
+        Per-IP rate limit hit (30/min or 500/hour). The `Retry-After` header
+        carries the seconds-until-reset.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+      headers:
+        Retry-After:
+          schema: { type: integer }
+
+  schemas:
+    EvmAddress:
+      type: string
+      pattern: "^0x[0-9a-fA-F]{40}$"
+      example: "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+    Hex32:
+      type: string
+      pattern: "^0x[0-9a-fA-F]{64}$"
+    Topic32:
+      type: string
+      pattern: "^0x[0-9a-fA-F]{64}$"
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: bad_request
+            message: { type: string }
+
+    Status:
+      type: object
+      properties:
+        chain: { type: string, example: arbitrum-one }
+        latest_indexed_block: { type: integer, format: int64 }
+        blocks_indexed: { type: integer }
+        elapsed_ms: { type: integer }
+
+    Signatures:
+      type: object
+      additionalProperties: true
+
+    TransferRow:
+      type: object
+      properties:
+        block_num: { type: integer, format: int64 }
+        log_index: { type: integer }
+        tx_hash: { $ref: "#/components/schemas/Hex32" }
+        from: { $ref: "#/components/schemas/EvmAddress" }
+        to:   { $ref: "#/components/schemas/EvmAddress" }
+        value:
+          type: string
+          description: uint256 as a decimal string (preserve full precision)
+    TransfersResponse:
+      type: object
+      properties:
+        count: { type: integer }
+        transfers:
+          type: array
+          items: { $ref: "#/components/schemas/TransferRow" }
+
+    EventRow:
+      type: object
+      properties:
+        block_num: { type: integer }
+        log_index: { type: integer }
+        tx_hash: { $ref: "#/components/schemas/Hex32" }
+        address: { $ref: "#/components/schemas/EvmAddress" }
+        topic0: { $ref: "#/components/schemas/Topic32" }
+        topic1: { $ref: "#/components/schemas/Topic32" }
+        topic2: { $ref: "#/components/schemas/Topic32" }
+        topic3: { $ref: "#/components/schemas/Topic32" }
+        data: { type: string, description: 0x-prefixed hex blob }
+    EventsResponse:
+      type: object
+      properties:
+        count: { type: integer }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/EventRow" }
+
+    BlockResponse:
+      type: object
+      additionalProperties: true
+      description: Block header + every tx + every log
+
+    TxResponse:
+      type: object
+      additionalProperties: true
+      description: Tx fields + logs array
+
+    AddressTxResponse:
+      type: object
+      additionalProperties: true
+
+    InteractionsResponse:
+      type: object
+      additionalProperties: true
+
+    GasSeriesPoint:
+      type: object
+      properties:
+        ts: { type: integer, format: int64, description: bucket start, ms since epoch }
+        blocks: { type: integer }
+        total_gas: { type: integer, format: int64 }
+        avg_gas: { type: number }
+        min_base_fee: { type: string }
+        avg_base_fee: { type: string }
+        max_base_fee: { type: string }
+    GasBlocksResponse:
+      type: object
+      properties:
+        bucket: { type: string }
+        from_block: { type: integer }
+        to_block: { type: integer }
+        count: { type: integer }
+        series:
+          type: array
+          items: { $ref: "#/components/schemas/GasSeriesPoint" }
+
+    ActivityResponse:
+      type: object
+      additionalProperties: true
+
+    VolumeResponse:
+      type: object
+      additionalProperties: true
+
+    ProtocolCatalog:
+      type: object
+      properties:
+        contract: { $ref: "#/components/schemas/EvmAddress" }
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              name: { type: string }
+              url: { type: string }
+              signature: { type: string }
+              topic0: { $ref: "#/components/schemas/Topic32" }
+
+    DecodedEventResponse:
+      type: object
+      properties:
+        count: { type: integer }
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    SqlContract:
+      type: object
+      additionalProperties: true
+
+    SqlResponse:
+      type: object
+      properties:
+        count: { type: integer }
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        elapsed_ms: { type: integer }

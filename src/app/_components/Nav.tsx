@@ -23,6 +23,7 @@ export function Nav() {
         </a>
         <nav className="nav-links">
           <a href="/explore">explore</a>
+          <a href="/docs">docs</a>
           <StatusBadge />
           <a
             href="https://github.com/lodestar-team/camp"

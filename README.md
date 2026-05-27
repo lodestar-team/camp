@@ -53,6 +53,8 @@ See [src/app/page.tsx](src/app/page.tsx) for the public-facing landing page (end
 
 Server-side caps: block span ≤ 100,000 · rows ≤ 1,000 · query timeout 8 s. Rate limit: 30/min · 500/hour per IP. Edge cache: 1 h for finalized ranges, 5 s near tip.
 
+OpenAPI 3.1 spec at [`/openapi.yaml`](https://camp.cargopete.com/openapi.yaml); browsable reference at [`/docs`](https://camp.cargopete.com/docs).
+
 ## Dashboards
 
 [`/explore`](https://camp.cargopete.com/explore) hosts server-rendered pages that demo what the API can do:

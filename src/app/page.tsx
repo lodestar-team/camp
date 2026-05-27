@@ -50,6 +50,9 @@ export default function Home() {
             <a className="btn" href="#endpoints">
               Browse endpoints
             </a>
+            <a className="btn" href="/docs">
+              OpenAPI reference
+            </a>
             <a
               className="btn"
               href="https://github.com/lodestar-team/camp"
