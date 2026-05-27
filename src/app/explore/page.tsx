@@ -7,6 +7,12 @@ export const metadata = {
 
 const DASHBOARDS = [
   {
+    href: "/explore/sql",
+    title: "sql playground",
+    blurb:
+      "Write your own queries. Read-only DataFusion-flavoured SQL against the raw and decoded tables, with full UDF access.",
+  },
+  {
     href: "/explore/gas",
     title: "gas & throughput",
     blurb:

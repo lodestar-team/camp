@@ -613,6 +613,49 @@ table.ticker tbody tr:hover { background: var(--surface-2); }
 table.ticker a { color: var(--text-muted); text-decoration: none; }
 table.ticker a:hover { color: var(--accent); }
 
+/* SQL editor */
+.sql-editor-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.sql-editor {
+  width: 100%;
+  display: block;
+  padding: 18px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  min-height: 280px;
+  tab-size: 2;
+}
+.sql-editor:focus { outline: none; }
+.sql-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px 10px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.sql-toolbar .btn-primary { padding: 7px 16px; }
+.kbd {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+}
+
 /* Horizon row-severity accents */
 table.ticker tr.row-slash td:first-child {
   box-shadow: inset 3px 0 0 var(--accent);
