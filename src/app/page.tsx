@@ -44,7 +44,10 @@ export default function Home() {
             chain tip; query latency under a second on typical filters.
           </p>
           <div className="cta-row">
-            <a className="btn btn-primary" href="#endpoints">
+            <a className="btn btn-primary" href="/explore">
+              Explore live dashboards
+            </a>
+            <a className="btn" href="#endpoints">
               Browse endpoints
             </a>
             <a

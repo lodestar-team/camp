@@ -613,6 +613,27 @@ table.ticker tbody tr:hover { background: var(--surface-2); }
 table.ticker a { color: var(--text-muted); text-decoration: none; }
 table.ticker a:hover { color: var(--accent); }
 
+/* Horizon row-severity accents */
+table.ticker tr.row-slash td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+table.ticker tr.row-delegation td:first-child {
+  box-shadow: inset 3px 0 0 var(--text-muted);
+}
+table.ticker tr.row-stake td:first-child {
+  box-shadow: inset 3px 0 0 var(--border-strong);
+}
+.event-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
 footer.foot {
   padding: 48px 0 64px;
   border-top: 1px solid var(--border);
