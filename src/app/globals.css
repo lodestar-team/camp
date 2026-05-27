@@ -172,18 +172,19 @@ button {
   color: var(--text-muted);
   cursor: pointer;
 }
-.nav-dd-trigger:hover,
-.nav-dd.open .nav-dd-trigger { color: var(--text); }
+.nav-dd:hover .nav-dd-trigger,
+.nav-dd:focus-within .nav-dd-trigger { color: var(--text); }
 .nav-dd-caret {
   font-size: 9px;
   line-height: 1;
   transition: transform 160ms ease;
   color: var(--text-subtle);
 }
-.nav-dd.open .nav-dd-caret { transform: rotate(-180deg); }
+.nav-dd:hover .nav-dd-caret,
+.nav-dd:focus-within .nav-dd-caret { transform: rotate(-180deg); }
 .nav-dd-panel {
   position: absolute;
-  top: calc(100% + 6px);
+  top: 100%;
   right: 0;
   min-width: 280px;
   background: var(--surface);
@@ -195,6 +196,27 @@ button {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  /* Hidden by default; revealed on hover/focus of the wrapper. */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+.nav-dd:hover .nav-dd-panel,
+.nav-dd:focus-within .nav-dd-panel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+/* A small invisible buffer so moving the cursor between trigger and panel
+   doesn't dismiss it. */
+.nav-dd::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 12px;
 }
 .nav-dd-item {
   display: flex;
