@@ -10,20 +10,57 @@ See [src/app/page.tsx](src/app/page.tsx) for the public-facing landing page (end
 
 ## Endpoints
 
+### Lookups & queries
+
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/v1/status` | Latest indexed block + indexed-block count |
 | GET | `/v1/signatures` | Reference of well-known event topic0s |
-| GET | `/v1/transfers?token=…&from_block=…&to_block=…&limit=…` | ERC-20 / 721 Transfer events, decoded |
-| GET | `/v1/events?address=…&topic0=…&topic1=…&from_block=…&to_block=…&limit=…` | Generic log filter |
+| GET | `/v1/transfers?token=…&from_block=…&to_block=…` | ERC-20 / 721 Transfer events, decoded (`from`/`to`/`value`) |
+| GET | `/v1/events?address=…&topic0=…&topic1..3=…&from_block=…&to_block=…` | Generic log filter |
 | GET | `/v1/block/{n}` | Full block: header + every tx + every log |
 | GET | `/v1/tx/{hash}?from_block=…&to_block=…` | Transaction + its logs (default window: last 100 k blocks) |
-| GET | `/v1/address/{a}/tx?from_block=…&to_block=…&direction=from\|to\|all` | Transactions where the address is `from` or `to` |
-| GET | `/v1/address/{a}/transfers?from_block=…&to_block=…&direction=in\|out\|all&token=…` | Token movements in/out, optional token filter |
-| GET | `/v1/gas/blocks?from_block=…&to_block=…&bucket=minute\|hour\|day` | Time-bucketed gas / base-fee / throughput stats |
-| GET | `/v1/contract/{a}/activity?from_block=…&to_block=…&bucket=minute\|hour\|day` | Time-bucketed log count for a contract |
+| GET | `/v1/address/{a}/tx?direction=from\|to\|all` | Transactions where address is `from`/`to` |
+| GET | `/v1/address/{a}/transfers?direction=in\|out\|all&token=…` | Token movements in/out, optional token filter |
+| GET | `/v1/address/{a}/interactions` | Distinct contracts an address called |
+
+### Aggregates
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/v1/gas/blocks?bucket=minute\|hour\|day` | Gas / base-fee / throughput time-series |
+| GET | `/v1/contract/{a}/activity?bucket=…` | Log-count time-series per contract |
+| GET | `/v1/token/{a}/volume?bucket=…` | Token transfer volume per bucket |
+| GET | `/v1/whales/transfers?token=…&min_value=…` | Big-Transfer feed for any token |
+
+### Decoded protocols
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/v1/horizon` | Catalog of supported Horizon events |
+| GET | `/v1/horizon/{event}` | 12 decoded Horizon staking events (provisions, delegations, slashing, …) |
+| GET | `/v1/uniswap-v3` | Catalog |
+| GET | `/v1/uniswap-v3/{event}?pool=…` | Decoded Uniswap V3 `swap`, `mint`, `burn` per pool |
+
+### Raw SQL, streams, discovery
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/v1/sql` | DataFusion-flavoured `SELECT` against the indexed tables (allowlisted, must include `block_num` filter) |
+| GET | `/v1/sql` | Surface description: tables, UDFs, contract |
+| GET | `/v1/datasets` | Full programmatic surface — raw + decoded + lookups + aggregates |
+| GET | `/v1/stream/blocks` | Server-Sent Events: new blocks as they're indexed |
 
 Server-side caps: block span ≤ 100,000 · rows ≤ 1,000 · query timeout 8 s. Rate limit: 30/min · 500/hour per IP. Edge cache: 1 h for finalized ranges, 5 s near tip.
+
+## Dashboards
+
+[`/explore`](https://camp.cargopete.com/explore) hosts server-rendered pages that demo what the API can do:
+
+- [`/explore/sql`](https://camp.cargopete.com/explore/sql) — Dune-style SQL playground with canned examples
+- [`/explore/gas`](https://camp.cargopete.com/explore/gas) — live base-fee + throughput charts
+- [`/explore/whales`](https://camp.cargopete.com/explore/whales) — live big-Transfer ticker, token switcher
+- [`/explore/horizon`](https://camp.cargopete.com/explore/horizon) — Graph Horizon timeline with severity accents
 
 ## Architecture
 
@@ -69,10 +106,11 @@ Point `AMP_ORIGIN` at `http://localhost:1604` when running against a local ampd.
 
 Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 
-- **Phase 1** ✅ Lookups + cheap aggregates over raw tables (10 endpoints)
-- **Phase A** 🚧 Decoded protocol data using Amp's `evm_decode_log` / `evm_topic` UDFs. Typed responses on existing endpoints, Graph Horizon decoded dataset, then Uniswap V3 + GMX.
-- **Phase B** Dashboard / explore UI — server-rendered pages that demo what's possible (gas, slashing, whales).
-- **Phase C** Anonymous tokens, raw `POST /v1/sql`, streaming/webhooks, CSV/Arrow IPC export.
+- **Phase 1** ✅ Lookups + cheap aggregates over raw tables
+- **Phase A** ✅ Decoded protocol data — Graph Horizon (12 events) + Uniswap V3 (swap/mint/burn) via `evm_decode_log`
+- **Phase B** ✅ `/explore` dashboards — SQL playground, gas, whales, Horizon timeline
+- **Phase C** ✅ Raw `POST /v1/sql`, `/v1/datasets` catalog, `/v1/stream/blocks` SSE
+- **Next** Anonymous tokens for higher per-user limits, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, webhooks.
 
 ## Deploys
 

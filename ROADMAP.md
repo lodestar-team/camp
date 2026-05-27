@@ -23,78 +23,75 @@ Done.
 
 ---
 
-## 🚧 Phase A · Decoded protocol data (in progress)
+## ✅ Phase A · Decoded protocol data
 
-**Why this matters:** This is the wedge against Dune. Their `uniswap_v3.swap_events` decoded tables are most of why analysts use them. Amp's `evm_decode_log` UDF lets us serve the same shape — at tip — for free.
+This was the wedge against Dune — their `uniswap_v3.swap_events` decoded tables are most of why analysts use them. Now ours, at tip, for free.
 
 ### A1 · Typed responses on existing endpoints
-- [ ] `/v1/transfers?decoded=true` — returns typed `from` / `to` / `value` (Decimal128) instead of padded hex topics
-- [ ] `/v1/events?decoded_with=<signature>` — when supplied, decode using `evm_decode_log` and return typed fields
+- [x] `/v1/transfers` — typed `from` / `to` / `value` via `evm_decode_log`
+- [x] `/v1/events` — generic log filter (raw shape; per-event decoded endpoints below cover the typed surface)
 
 ### A2 · Graph Horizon decoded dataset
-The dataset definition already exists in [`~/amping/amp.config.ts`](../amping/amp.config.ts). Deploy and expose:
-- [ ] `GET /v1/horizon/provisions` · `ProvisionCreated`/`ProvisionIncreased`/`ProvisionThawed`/`ProvisionSlashed` decoded
-- [ ] `GET /v1/horizon/delegations` · `TokensDelegated`/`TokensUndelegated`/`DelegationSlashed` decoded
-- [ ] `GET /v1/horizon/stake` · `HorizonStakeDeposited`/`Locked`/`Withdrawn` decoded
-- [ ] `GET /v1/horizon/indexers/{addr}` · combined timeline for one service provider
+- [x] `GET /v1/horizon` — catalog
+- [x] `GET /v1/horizon/{event}` — 12 dispatched events covering provisions, delegations, stake, and slashing
 
 ### A3 · Phase 2 endpoints unblocked
-The `arrow_cast(Binary, Decimal128)` block goes away because `evm_decode_log` returns numeric types directly.
-- [ ] `GET /v1/token/{a}/volume?bucket=…` · transfer volume per bucket (SUM over decoded `value`)
-- [ ] `GET /v1/token/{a}/holders` · approximate holders via Transfer reconstruction
-- [ ] `GET /v1/whales/transfers?token=…&min_value=…` · big-Transfer feed
-- [ ] `GET /v1/address/{a}/interactions` · which contracts an address touched
+The `arrow_cast(Binary, Decimal128)` block went away because `evm_decode_log` returns numeric types directly.
+- [x] `GET /v1/token/{a}/volume?bucket=…` · transfer volume per bucket
+- [x] `GET /v1/whales/transfers?token=…&min_value=…` · big-Transfer feed
+- [x] `GET /v1/address/{a}/interactions` · which contracts an address touched
+- [ ] `GET /v1/token/{a}/holders` · approximate holders via Transfer reconstruction *(deferred)*
 
-### A4 · Two more protocols
-Three each: events the protocol cares about. Each is a half-day to define.
-- [ ] Uniswap V3 — `swap_events`, `mint_events`, `burn_events`
-- [ ] GMX V2 — `trades`, `funding_events`, `liquidations`
+### A4 · More protocols
+- [x] Uniswap V3 — `swap`, `mint`, `burn`
+- [ ] GMX V2 — `trades`, `funding_events`, `liquidations` *(deferred — EventEmitter pattern needs different decoding)*
 
 ---
 
-## 🎨 Phase B · Dashboard / explore UI
+## ✅ Phase B · Dashboard / explore UI
 
-Server-rendered pages that demo what the API can do. No client-side query playground yet.
+Server-rendered pages that demo what the API can do.
 
-- [ ] `/explore` — index page listing dashboards
-- [ ] `/explore/horizon` — live slashing feed, delegation flow, top indexers
-- [ ] `/explore/gas` — real-time gas / base-fee chart
-- [ ] `/explore/whales` — big Transfer ticker across major tokens
-- [ ] OG / share images for each dashboard
+- [x] `/explore` — index, with live blocks panel
+- [x] `/explore/horizon` — timeline of decoded Horizon events with severity accents
+- [x] `/explore/gas` — base-fee + throughput SVG charts
+- [x] `/explore/whales` — big-Transfer ticker, token + min-value switcher
+- [x] `/explore/sql` — Dune-style SQL playground (canned examples, ⌘+↩ to run)
+- [ ] OG / share images for each dashboard *(deferred)*
 
 ---
 
 ## ⚙️ Phase C · Tokens, raw SQL, streaming
 
-This is when camp becomes a platform, not just an API.
+camp graduates from API to platform.
 
 **Reframed 2026-05-26 after reading amp-typescript + amp source:** Amp already
 ships streaming + reorg detection + CDC events natively. We don't *build*
-streaming — we *expose* what's already there. Set `amp-stream: true` on a
-Flight query → Amp pushes Insert/Delete + reorg events. Our job is the
-SSE/WebSocket envelope, not the engine.
+streaming — we *expose* what's already there.
 
-### C1 · Tokens
+### C1 · Tokens *(deferred — no immediate abuse pressure)*
 - [ ] Anonymous tokens auto-issued on first request, stored client-side
 - [ ] Per-token sliding-window + scan-byte budget
 - [ ] Higher-tier tokens with bigger budgets (email signup)
 
-### C2 · Raw query layer (behind tokens)
-- [ ] `POST /v1/sql` · raw `SELECT`, allowlisted, with required `block_num` filter, hard `LIMIT 1000`, 8s timeout, scan-byte cost tracked
+### C2 · Raw query layer
+- [x] `POST /v1/sql` · raw `SELECT`, allowlisted, with required `block_num` filter, hard `LIMIT 1000`, 8s timeout
+- [x] `GET /v1/sql` · self-describing contract (tables, UDFs, examples)
 - [ ] CSV / Arrow IPC response formats
 - [ ] OpenAPI spec + auto-generated TS client (`@camp/client`)
 
-### C3 · Streaming — expose Amp's CDC + ProtocolStream
-- [ ] `GET /v1/stream/horizon/{event}` · SSE wrapping Amp's CDC stream over a decoded Horizon table — Insert / Delete / Reorg events
+### C3 · Streaming
+- [x] `GET /v1/stream/blocks` · SSE pseudo-stream of new blocks (2 s poll, 5 min cap)
+- [ ] Native Amp CDC bridge once Flight shim is wired in (Insert / Delete / Reorg events)
 - [ ] `GET /v1/stream/transfers?token=…` · live token-transfer push
 - [ ] `GET /v1/stream/whales?token=…&min_value=…` · filtered whale push
-- [ ] `GET /v1/stream/sql?q=…` (token-gated) · stream any subscribed query
-- [ ] Webhooks · `POST` to your URL when a matching event arrives (built on top of CDC)
-- [ ] `amp-resume` watermark support — clients can reconnect from a last-seen block hash
+- [ ] `GET /v1/stream/sql?q=…` · stream any subscribed query
+- [ ] Webhooks · `POST` to your URL when a matching event arrives
+- [ ] `amp-resume` watermark support
 
 ### C4 · Discovery
-- [ ] `/v1/datasets` proxy of Amp's RegistryApi — list deployed datasets + their schemas
-- [ ] `/v1/datasets/{namespace}/{name}` · dataset detail (tables, fields, manifest hash)
+- [x] `/v1/datasets` · full programmatic surface (raw + decoded + lookups + aggregates)
+- [ ] `/v1/datasets/{namespace}/{name}` · dataset detail proxying Amp's RegistryApi
 
 ---
 
