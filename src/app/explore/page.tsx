@@ -3,7 +3,8 @@ import { LiveBlocks } from "../_components/LiveBlocks";
 
 export const metadata = {
   title: "explore · camp",
-  description: "Live dashboards over Arbitrum One — gas, whales, Graph Horizon.",
+  description:
+    "Live dashboards over Arbitrum One — decoded protocols, gas, whales, address profiles, raw SQL, and ad-hoc lookups.",
 };
 
 const DASHBOARDS = [
@@ -14,22 +15,58 @@ const DASHBOARDS = [
       "Write your own queries. Read-only DataFusion-flavoured SQL against the raw and decoded tables, with full UDF access.",
   },
   {
-    href: "/explore/gas",
-    title: "gas & throughput",
+    href: "/explore/uniswap-v3",
+    title: "uniswap v3",
     blurb:
-      "Real-time chart of Arbitrum's base fee, average gas burnt per block, and per-minute throughput.",
-  },
-  {
-    href: "/explore/whales",
-    title: "whale transfers",
-    blurb:
-      "Live feed of the biggest token transfers happening right now across the major Arbitrum stablecoins.",
+      "Decoded swap, mint, and burn events per pool — same shape Dune ships as uniswap_v3.swap_events, at tip and free.",
   },
   {
     href: "/explore/horizon",
     title: "graph horizon",
     blurb:
       "Stake, delegation, and slashing events for the Graph Horizon protocol on Arbitrum One.",
+  },
+  {
+    href: "/explore/whales",
+    title: "whale transfers",
+    blurb:
+      "Live feed of the biggest token transfers across the major Arbitrum stablecoins.",
+  },
+  {
+    href: "/explore/gas",
+    title: "gas & throughput",
+    blurb:
+      "Real-time chart of Arbitrum's base fee, average gas per block, and per-minute throughput.",
+  },
+  {
+    href: "/explore/token",
+    title: "token volume",
+    blurb:
+      "Pick any ERC-20 — get bucketed transfer volume plus a tape of recent transfers underneath.",
+  },
+  {
+    href: "/explore/address",
+    title: "address profile",
+    blurb:
+      "Combined tx history, token transfers, and contract interactions for any wallet on Arbitrum One.",
+  },
+  {
+    href: "/explore/contract",
+    title: "contract activity",
+    blurb:
+      "Log-count time-series for any contract. Spot bursts, lulls, and dead deploys at a glance.",
+  },
+  {
+    href: "/explore/lookup",
+    title: "block / tx / events",
+    blurb:
+      "Look up a single block, a single transaction, or run an ad-hoc events filter without writing fetch().",
+  },
+  {
+    href: "/explore/signatures",
+    title: "event signatures",
+    blurb:
+      "Reference table of well-known topic0s the API recognises — ERC-20, ERC-721, DEXes, protocol events.",
   },
 ];
 
