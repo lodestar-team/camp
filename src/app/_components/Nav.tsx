@@ -1,4 +1,27 @@
 import { StatusBadge } from "./StatusBadge";
+import { NavDropdown, type DropdownItem } from "./NavDropdown";
+
+const EXPLORE_ITEMS: DropdownItem[] = [
+  { href: "/explore", label: "explore home", desc: "live blocks + dashboard index" },
+  { href: "/explore/sql", label: "sql playground", desc: "Dune-style SELECT against the indexed tables" },
+  { href: "/explore/uniswap-v3", label: "uniswap v3", desc: "decoded swap / mint / burn per pool" },
+  { href: "/explore/horizon", label: "graph horizon", desc: "stake, delegation, slashing timeline" },
+  { href: "/explore/whales", label: "whale transfers", desc: "live big-Transfer ticker" },
+  { href: "/explore/gas", label: "gas & throughput", desc: "base-fee + per-block gas chart" },
+  { href: "/explore/token", label: "token volume", desc: "bucketed transfer volume for any ERC-20" },
+  { href: "/explore/address", label: "address profile", desc: "tx + transfers + interactions for a wallet" },
+  { href: "/explore/contract", label: "contract activity", desc: "log-count time-series" },
+  { href: "/explore/lookup", label: "block / tx / events", desc: "ad-hoc primitives forms" },
+  { href: "/explore/signatures", label: "event signatures", desc: "well-known topic0 reference" },
+];
+
+const DOCS_ITEMS: DropdownItem[] = [
+  { href: "/docs", label: "API reference", desc: "browsable OpenAPI 3.1 (Scalar)" },
+  { href: "/openapi.yaml", label: "openapi.yaml", desc: "raw spec — feed to your client generator" },
+  { href: "/#endpoints", label: "endpoint catalog", desc: "list with code samples (curl / js / py / rust)" },
+  { href: "/v1/datasets", label: "datasets surface", desc: "JSON description of every endpoint family" },
+  { href: "/v1/status", label: "status JSON", desc: "tip block, indexed count, history depth" },
+];
 
 export function Nav() {
   return (
@@ -22,8 +45,8 @@ export function Nav() {
           camp
         </a>
         <nav className="nav-links">
-          <a href="/explore">explore</a>
-          <a href="/docs">docs</a>
+          <NavDropdown label="explore" items={EXPLORE_ITEMS} />
+          <NavDropdown label="docs" items={DOCS_ITEMS} />
           <StatusBadge />
           <a
             href="https://github.com/lodestar-team/camp"
