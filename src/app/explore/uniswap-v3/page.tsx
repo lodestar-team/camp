@@ -3,7 +3,8 @@ import { UniswapV3Dashboard } from "./_dashboard";
 
 export const metadata = {
   title: "uniswap v3 · camp",
-  description: "Decoded swap, mint, and burn events per Uniswap V3 pool.",
+  description:
+    "Decoded swap, mint, and burn events for the major Uniswap V3 pools on Arbitrum One.",
 };
 
 export default function UniswapV3Page() {
@@ -11,7 +12,10 @@ export default function UniswapV3Page() {
     <>
       <Nav />
       <main>
-        <section className="container" style={{ paddingTop: 64, paddingBottom: 32 }}>
+        <section
+          className="container"
+          style={{ paddingTop: 64, paddingBottom: 32 }}
+        >
           <p className="section-eyebrow">explore · uniswap v3</p>
           <h1
             style={{
@@ -25,10 +29,11 @@ export default function UniswapV3Page() {
           </h1>
           <p className="lede">
             Pick a pool, pick an event. Every row below comes from a single{" "}
-            <code>GET /v1/uniswap-v3/{`{swap|mint|burn}`}</code> call against the
-            indexed logs — no JSON-RPC fan-out, no schema guessing.
+            <code>GET /v1/uniswap-v3/&#123;swap|mint|burn&#125;</code> call
+            against the indexed logs — no JSON-RPC fan-out, no schema guessing.
           </p>
         </section>
+
         <section className="container" style={{ paddingBottom: 96 }}>
           <UniswapV3Dashboard />
         </section>

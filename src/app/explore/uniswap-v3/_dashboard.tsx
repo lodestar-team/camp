@@ -1,146 +1,187 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-type AnyRow = Record<string, string | number | null>;
-type Response = { event: string; pool: string; count: number; events: AnyRow[] };
 type Status = { latest_indexed_block: number };
 
-type PoolMeta = {
-  label: string;
-  address: string;
-  token0: { symbol: string; decimals: number };
-  token1: { symbol: string; decimals: number };
-  feeBps: number;
+type SwapRow = {
+  block_num: number;
+  log_index: number;
+  tx_hash: string;
+  sender: string;
+  recipient: string;
+  amount0: string;
+  amount1: string;
+  sqrtPriceX96: string;
+  liquidity: string;
+  tick: string;
 };
 
-// token0 / token1 are determined by address ordering. WETH (0x82af…) <
-// USDC (0xaf88…), so on WETH/USDC pools WETH is token0 and USDC is token1.
-const POOLS: PoolMeta[] = [
+type MintBurnRow = {
+  block_num: number;
+  log_index: number;
+  tx_hash: string;
+  sender?: string;
+  owner: string;
+  tickLower: string;
+  tickUpper: string;
+  amount: string;
+  amount0: string;
+  amount1: string;
+};
+
+type UniswapResponse = {
+  event: string;
+  pool: string;
+  count: number;
+  events: (SwapRow | MintBurnRow)[];
+};
+
+type Token = { symbol: string; decimals: number };
+type Pool = { label: string; address: string; token0: Token; token1: Token };
+
+const POOLS: Pool[] = [
   {
     label: "WETH/USDC 0.05%",
     address: "0xc6962004f452be9203591991d15f6b388e09e8d0",
     token0: { symbol: "WETH", decimals: 18 },
     token1: { symbol: "USDC", decimals: 6 },
-    feeBps: 5,
   },
   {
     label: "WETH/USDC.e 0.05%",
     address: "0xc31e54c7a869b9fcbecc14363cf510d1c41fa443",
     token0: { symbol: "WETH", decimals: 18 },
     token1: { symbol: "USDC.e", decimals: 6 },
-    feeBps: 5,
   },
   {
     label: "ARB/WETH 0.05%",
     address: "0x755e5a186f0469583bd2e80d1216e02ab88ec6ca",
     token0: { symbol: "ARB", decimals: 18 },
     token1: { symbol: "WETH", decimals: 18 },
-    feeBps: 5,
   },
   {
     label: "WBTC/WETH 0.05%",
     address: "0x2f5e87c9312fa29aed5c179e456625d79015299c",
     token0: { symbol: "WBTC", decimals: 8 },
     token1: { symbol: "WETH", decimals: 18 },
-    feeBps: 5,
   },
 ];
 
 const EVENTS = ["swap", "mint", "burn"] as const;
-type EventKind = (typeof EVENTS)[number];
+type EventSlug = (typeof EVENTS)[number];
 
-function short(addr: string | null | undefined): string {
-  if (!addr) return "—";
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+// How many fractional digits to show for a given token decimal count.
+function dispDec(tokenDecimals: number): number {
+  return tokenDecimals <= 6 ? 4 : 6;
 }
 
-// Format a uint/int decimal-string with the right number of fractional
-// places. Handles negative values too.
-function formatDecimal(raw: string, decimals: number, places = 4): string {
-  let neg = false;
-  let s = raw;
-  if (s.startsWith("-")) {
-    neg = true;
-    s = s.slice(1);
+// Format a signed raw-integer string to human-readable decimal.
+// Pads with leading zeros so the decimal point lands correctly, then
+// rounds (half-up) at `show` fractional digits.
+function fmtAmt(raw: string, tokenDecimals: number, show = 6): string {
+  try {
+    let neg = false;
+    let s = raw;
+    if (s.startsWith("-")) {
+      neg = true;
+      s = s.slice(1);
+    }
+    // Ensure enough digits for the decimal point to land inside the string
+    while (s.length <= tokenDecimals) s = "0" + s;
+    const whole = s.slice(0, s.length - tokenDecimals) || "0";
+    const fracFull = s.slice(s.length - tokenDecimals);
+    const frac = show > 0 ? roundHalf(fracFull, show) : "";
+    const wholeFmt = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const out = show > 0 ? `${wholeFmt}.${frac}` : wholeFmt;
+    return neg ? `-${out}` : out;
+  } catch {
+    return raw;
   }
-  if (s.length <= decimals) s = s.padStart(decimals + 1, "0");
-  const whole = s.slice(0, s.length - decimals);
-  const frac = s.slice(s.length - decimals).slice(0, places);
-  const wholeFmt = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  const out = places > 0 ? `${wholeFmt}.${frac.padEnd(places, "0")}` : wholeFmt;
-  return neg ? `-${out}` : out;
 }
 
-// Implied price = |amount1| / |amount0|, adjusted for the difference in
-// decimals. Returns a string formatted with thousands separators and 4
-// fractional places.
-function impliedPrice(amount0: string, amount1: string, pool: PoolMeta): string | null {
+function roundHalf(digits: string, keep: number): string {
+  const d = digits.padEnd(keep + 1, "0").split("").map(Number);
+  if ((d[keep] ?? 0) >= 5) {
+    for (let i = keep - 1; i >= 0; i--) {
+      d[i] = (d[i] ?? 0) + 1;
+      if ((d[i] ?? 0) < 10) break;
+      d[i] = 0;
+    }
+  }
+  return d.slice(0, keep).join("").padStart(keep, "0");
+}
+
+// Price of token0 in token1 (human-readable), computed from swap amounts.
+//
+// Fixed: accumulate ALL scale factors before the single integer division.
+// The old formula did  (|a1| × 10¹² / |a0|) × 10^dec0 / 10^dec1  which
+// fires BigInt integer division at step 2 and loses all decimal precision —
+// causing every price to display as an exact whole number (2048.0000 etc).
+//
+// Correct: num = |a1| × 10^dec0 × 10^FRAC
+//          den = |a0| × 10^dec1
+//          p   = num / den          ← single division, full precision
+function calcPrice(amount0: string, amount1: string, pool: Pool): string | null {
   try {
     const a0 = BigInt(amount0);
     const a1 = BigInt(amount1);
     if (a0 === 0n) return null;
-    // Use a high-precision scaled integer divide
-    const SCALE = 10n ** 12n;
-    const a0Abs = a0 < 0n ? -a0 : a0;
-    const a1Abs = a1 < 0n ? -a1 : a1;
-    // price (token1 per token0), in token1's smallest unit per token0's smallest unit
-    // → multiply by SCALE for fractional precision, divide
-    const ratio = (a1Abs * SCALE) / a0Abs;
-    // Adjust for decimal difference: result so far is in
-    // (token1_smallest_units * SCALE) per (token0_smallest_unit). To get
-    // token1 per token0 in normal units, multiply by 10^token0Dec and
-    // divide by 10^token1Dec.
-    const adj = (ratio * 10n ** BigInt(pool.token0.decimals)) / 10n ** BigInt(pool.token1.decimals);
-    // adj is price × SCALE. Format with 4 fractional places.
-    const wholeUnits = adj / SCALE;
-    const fracUnits = adj % SCALE;
-    const fracStr = fracUnits.toString().padStart(12, "0").slice(0, 4);
-    return `${wholeUnits.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fracStr}`;
+    const abs0 = a0 < 0n ? -a0 : a0;
+    const abs1 = a1 < 0n ? -a1 : a1;
+    const FRAC = 4n;
+    const num = abs1 * 10n ** BigInt(pool.token0.decimals) * 10n ** FRAC;
+    const den = abs0 * 10n ** BigInt(pool.token1.decimals);
+    const p = num / den;
+    const whole = p / 10n ** FRAC;
+    const frac = p % 10n ** FRAC;
+    return `${whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${frac
+      .toString()
+      .padStart(Number(FRAC), "0")}`;
   } catch {
     return null;
   }
 }
 
-async function load(
-  pool: string,
-  event: EventKind,
-): Promise<Response | null> {
-  const statusRes = await fetch("/v1/status", { cache: "no-store" });
-  if (!statusRes.ok) return null;
-  const { latest_indexed_block } = (await statusRes.json()) as Status;
+function short(addr: string): string {
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+async function fetchEvents(pool: Pool, slug: EventSlug): Promise<UniswapResponse | null> {
+  const sr = await fetch("/v1/status", { cache: "no-store" });
+  if (!sr.ok) return null;
+  const { latest_indexed_block } = (await sr.json()) as Status;
   const from = Math.max(0, latest_indexed_block - 5000);
   const res = await fetch(
-    `/v1/uniswap-v3/${event}?pool=${pool}&from_block=${from}&to_block=${latest_indexed_block}&limit=50`,
+    `/v1/uniswap-v3/${slug}?pool=${pool.address}&from_block=${from}&to_block=${latest_indexed_block}&limit=50`,
     { cache: "no-store" },
   );
   if (!res.ok) return null;
-  return (await res.json()) as Response;
+  return res.json() as Promise<UniswapResponse>;
 }
 
 export function UniswapV3Dashboard() {
-  const [pool, setPool] = useState<string>(POOLS[0]!.address);
-  const [customPool, setCustomPool] = useState<string>("");
-  const [event, setEvent] = useState<EventKind>("swap");
-  const [data, setData] = useState<Response | null>(null);
+  const [pool, setPool] = useState<Pool>(POOLS[0]!);
+  const [slug, setSlug] = useState<EventSlug>("swap");
+  const [data, setData] = useState<UniswapResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const activePool = customPool || pool;
-  const poolMeta = useMemo(
-    () => POOLS.find((p) => p.address === activePool) ?? null,
-    [activePool],
-  );
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
     async function tick() {
       try {
-        const r = await load(activePool, event);
-        if (!alive) return;
-        setData(r);
-        setError(r ? null : "no data");
+        const r = await fetchEvents(pool, slug);
+        if (alive) {
+          setData(r);
+          setError(r ? null : "no data");
+          setLoading(false);
+        }
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : "load failed");
+        if (alive) {
+          setError(e instanceof Error ? e.message : "load failed");
+          setLoading(false);
+        }
       }
     }
     tick();
@@ -149,210 +190,181 @@ export function UniswapV3Dashboard() {
       alive = false;
       clearInterval(id);
     };
-  }, [activePool, event]);
+  }, [pool, slug]);
 
   return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 12,
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <span className="filter-label">pool</span>
-        <select
-          value={customPool ? "" : pool}
-          onChange={(e) => {
-            setCustomPool("");
-            setPool(e.target.value);
-          }}
-          className="select"
-        >
+    <div>
+      <div className="filter-bar">
+        <div className="filter-group">
+          <span className="filter-label">pool</span>
           {POOLS.map((p) => (
-            <option key={p.address} value={p.address}>
-              {p.label}
-            </option>
-          ))}
-          <option value="">— custom —</option>
-        </select>
-        <input
-          type="text"
-          placeholder="0xPoolAddress"
-          value={customPool}
-          onChange={(e) => setCustomPool(e.target.value.trim().toLowerCase())}
-          className="input mono"
-          style={{ minWidth: 360 }}
-        />
-        <span className="filter-label" style={{ marginLeft: 16 }}>
-          event
-        </span>
-        <div style={{ display: "inline-flex", gap: 4 }}>
-          {EVENTS.map((e) => (
             <button
-              key={e}
+              key={p.address}
               type="button"
-              onClick={() => setEvent(e)}
-              className={`btn ${event === e ? "btn-primary" : ""}`}
-              style={{ padding: "6px 14px", fontSize: 13 }}
+              className={`filter-chip${p.address === pool.address ? " active" : ""}`}
+              onClick={() => setPool(p)}
             >
-              {e}
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="filter-group">
+          <span className="filter-label">event</span>
+          {EVENTS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`filter-chip${s === slug ? " active" : ""}`}
+              onClick={() => setSlug(s)}
+            >
+              {s}
             </button>
           ))}
         </div>
       </div>
 
-      <p className="mono" style={{ color: "var(--text-subtle)", fontSize: 12, marginBottom: 12 }}>
-        GET /v1/uniswap-v3/{event}?pool={activePool || "?"}&amp;…
-      </p>
+      <div className="endpoint-line" style={{ marginTop: 16, marginBottom: 4, fontSize: 13 }}>
+        <span className="endpoint-verb">GET</span>
+        <span className="mono">{`/v1/uniswap-v3/${slug}?pool=${pool.address}&\u2026`}</span>
+      </div>
 
-      {!poolMeta ? (
-        <p style={{ color: "var(--text-subtle)", fontSize: 12, marginBottom: 12 }}>
-          Unknown pool — showing raw integers without decimal adjustment.
-        </p>
-      ) : null}
-
-      {error ? (
-        <p style={{ color: "#b34a3a" }}>{error}</p>
-      ) : !data ? (
-        <p style={{ color: "var(--text-subtle)" }}>Loading…</p>
-      ) : data.events.length === 0 ? (
-        <p style={{ color: "var(--text-subtle)" }}>
-          No <strong>{event}</strong> events found in the last ~5k blocks for this pool.
-        </p>
-      ) : event === "swap" && poolMeta ? (
-        <SwapTable rows={data.events} pool={poolMeta} />
-      ) : event === "mint" && poolMeta ? (
-        <MintBurnTable rows={data.events} pool={poolMeta} kind="mint" />
-      ) : event === "burn" && poolMeta ? (
-        <MintBurnTable rows={data.events} pool={poolMeta} kind="burn" />
+      {loading ? (
+        <div className="disclaimer" style={{ marginTop: 20 }}>
+          Loading…
+        </div>
+      ) : error ? (
+        <div className="disclaimer" style={{ marginTop: 20 }}>
+          error: <code>{error}</code>
+        </div>
+      ) : !data || data.events.length === 0 ? (
+        <div className="disclaimer" style={{ marginTop: 20 }}>
+          No {slug} events in the last 5,000 blocks for this pool.
+        </div>
+      ) : slug === "swap" ? (
+        <SwapTable rows={data.events as SwapRow[]} pool={pool} />
       ) : (
-        <RawTable rows={data.events} />
+        <MintBurnTable rows={data.events as MintBurnRow[]} pool={pool} />
       )}
-    </>
+
+      <div className="dashboard-meta">
+        <span>{data?.count ?? 0} events · refreshes every 12 s</span>
+        <span>last 5,000 blocks from chain tip</span>
+        <a
+          href={`/v1/uniswap-v3/${slug}?pool=${pool.address}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          raw response →
+        </a>
+      </div>
+    </div>
   );
 }
 
-function SwapTable({ rows, pool }: { rows: AnyRow[]; pool: PoolMeta }) {
-  const t0 = pool.token0;
-  const t1 = pool.token1;
+function SwapTable({ rows, pool }: { rows: SwapRow[]; pool: Pool }) {
+  const sd0 = dispDec(pool.token0.decimals);
+  const sd1 = dispDec(pool.token1.decimals);
   return (
-    <div className="table-wrap">
-      <table className="data-table mono" style={{ fontSize: 12 }}>
+    <div className="chart-card" style={{ marginTop: 16, padding: 0, overflow: "hidden" }}>
+      <table className="ticker">
         <thead>
           <tr>
             <th>block</th>
             <th>tx</th>
             <th>sender</th>
             <th>recipient</th>
-            <th>{t0.symbol} Δ</th>
-            <th>{t1.symbol} Δ</th>
-            <th>price ({t1.symbol}/{t0.symbol})</th>
-            <th>tick</th>
+            <th style={{ textAlign: "right" }}>{pool.token0.symbol} Δ</th>
+            <th style={{ textAlign: "right" }}>{pool.token1.symbol} Δ</th>
+            <th style={{ textAlign: "right" }}>
+              price ({pool.token1.symbol}/{pool.token0.symbol})
+            </th>
+            <th style={{ textAlign: "right" }}>tick</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => {
-            const a0 = String(r.amount0 ?? "0");
-            const a1 = String(r.amount1 ?? "0");
-            const price = impliedPrice(a0, a1, pool);
-            return (
-              <tr key={i}>
-                <td>{Number(r.block_num).toLocaleString()}</td>
-                <td>{short(r.tx_hash as string)}</td>
-                <td>{short(r.sender as string)}</td>
-                <td>{short(r.recipient as string)}</td>
-                <td style={{ color: a0.startsWith("-") ? "#b34a3a" : "var(--text)" }}>
-                  {formatDecimal(a0, t0.decimals)}
-                </td>
-                <td style={{ color: a1.startsWith("-") ? "#b34a3a" : "var(--text)" }}>
-                  {formatDecimal(a1, t1.decimals)}
-                </td>
-                <td>{price ?? "—"}</td>
-                <td>{String(r.tick ?? "—")}</td>
-              </tr>
-            );
-          })}
+          {rows.map((r) => (
+            <tr key={`${r.block_num}-${r.log_index}`}>
+              <td className="mono">{r.block_num.toLocaleString()}</td>
+              <td>
+                <a
+                  className="mono"
+                  href={`https://arbiscan.io/tx/${r.tx_hash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {r.tx_hash.slice(0, 10)}↗
+                </a>
+              </td>
+              <td className="mono">{short(r.sender)}</td>
+              <td className="mono">{short(r.recipient)}</td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {fmtAmt(r.amount0, pool.token0.decimals, sd0)}
+              </td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {fmtAmt(r.amount1, pool.token1.decimals, sd1)}
+              </td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {calcPrice(r.amount0, r.amount1, pool) ?? "—"}
+              </td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {Number(r.tick).toLocaleString()}
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   );
 }
 
-function MintBurnTable({
-  rows,
-  pool,
-  kind,
-}: {
-  rows: AnyRow[];
-  pool: PoolMeta;
-  kind: "mint" | "burn";
-}) {
-  const t0 = pool.token0;
-  const t1 = pool.token1;
-  const ownerKey = kind === "mint" ? "owner" : "owner";
+function MintBurnTable({ rows, pool }: { rows: MintBurnRow[]; pool: Pool }) {
+  const sd0 = dispDec(pool.token0.decimals);
+  const sd1 = dispDec(pool.token1.decimals);
   return (
-    <div className="table-wrap">
-      <table className="data-table mono" style={{ fontSize: 12 }}>
+    <div className="chart-card" style={{ marginTop: 16, padding: 0, overflow: "hidden" }}>
+      <table className="ticker">
         <thead>
           <tr>
             <th>block</th>
             <th>tx</th>
-            <th>{ownerKey}</th>
-            <th>tickLower</th>
-            <th>tickUpper</th>
-            <th>{t0.symbol}</th>
-            <th>{t1.symbol}</th>
+            <th>owner</th>
+            <th style={{ textAlign: "right" }}>tickLower</th>
+            <th style={{ textAlign: "right" }}>tickUpper</th>
+            <th style={{ textAlign: "right" }}>liquidity</th>
+            <th style={{ textAlign: "right" }}>{pool.token0.symbol} Δ</th>
+            <th style={{ textAlign: "right" }}>{pool.token1.symbol} Δ</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => {
-            const a0 = String(r.amount0 ?? "0");
-            const a1 = String(r.amount1 ?? "0");
-            return (
-              <tr key={i}>
-                <td>{Number(r.block_num).toLocaleString()}</td>
-                <td>{short(r.tx_hash as string)}</td>
-                <td>{short((r.owner ?? r.sender) as string)}</td>
-                <td>{String(r.tickLower ?? "—")}</td>
-                <td>{String(r.tickUpper ?? "—")}</td>
-                <td>{formatDecimal(a0, t0.decimals)}</td>
-                <td>{formatDecimal(a1, t1.decimals)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function RawTable({ rows }: { rows: AnyRow[] }) {
-  const columns = Object.keys(rows[0]!);
-  return (
-    <div className="table-wrap">
-      <table className="data-table mono" style={{ fontSize: 12 }}>
-        <thead>
-          <tr>
-            {columns.map((c) => (
-              <th key={c}>{c}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i}>
-              {columns.map((c) => {
-                const v = row[c];
-                let display: string;
-                if (v == null) display = "—";
-                else if (typeof v === "string" && /^0x[0-9a-f]{40}$/i.test(v)) display = short(v);
-                else if (typeof v === "string" && v.length > 20) display = `${v.slice(0, 10)}…`;
-                else display = String(v);
-                return <td key={c}>{display}</td>;
-              })}
+          {rows.map((r) => (
+            <tr key={`${r.block_num}-${r.log_index}`}>
+              <td className="mono">{r.block_num.toLocaleString()}</td>
+              <td>
+                <a
+                  className="mono"
+                  href={`https://arbiscan.io/tx/${r.tx_hash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {r.tx_hash.slice(0, 10)}↗
+                </a>
+              </td>
+              <td className="mono">{short(r.owner)}</td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {Number(r.tickLower).toLocaleString()}
+              </td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {Number(r.tickUpper).toLocaleString()}
+              </td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {fmtAmt(r.amount, 0, 0)}
+              </td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {fmtAmt(r.amount0, pool.token0.decimals, sd0)}
+              </td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {fmtAmt(r.amount1, pool.token1.decimals, sd1)}
+              </td>
             </tr>
           ))}
         </tbody>
