@@ -29,12 +29,14 @@ export async function GET(req: Request, ctx: RouteContext) {
     // Decode Transfer.value as decimal string, cast to Decimal128 for SUM.
     // Output `volume` comes back as a decimal value — we keep it stringified
     // in the JSON response by casting back to Utf8 to dodge JS Number precision.
+    // TRY_CAST so spammy Transfer events whose value overflows Decimal128(38, 0)
+    // contribute NULL to the SUM instead of aborting the query.
     const sql = `
       SELECT
         date_trunc('${bucket}', timestamp) AS bucket_ts,
         COUNT(*) AS transfers,
         arrow_cast(
-          SUM(arrow_cast(d['value'], 'Decimal128(38, 0)')),
+          SUM(TRY_CAST(d['value'] AS DECIMAL(38, 0))),
           'Utf8'
         ) AS volume
       FROM (

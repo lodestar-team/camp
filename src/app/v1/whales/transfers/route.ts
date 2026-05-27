@@ -50,7 +50,10 @@ export async function GET(req: Request) {
           AND address = ${hexLiteral(token)}
           AND topic0  = evm_topic('Transfer(address,address,uint256)')
       )
-      WHERE arrow_cast(d['value'], 'Decimal128(38, 0)') >= ${minValue}
+      -- TRY_CAST so junk Transfer events with values that overflow
+      -- Decimal128(38, 0) (e.g. spam tokens emitting 2^255-1) return NULL
+      -- instead of aborting the entire query. NULL >= n is filtered out.
+      WHERE TRY_CAST(d['value'] AS DECIMAL(38, 0)) >= ${minValue}
       ORDER BY block_num DESC, log_index DESC
       LIMIT ${limit}
     `.trim();
