@@ -2,6 +2,7 @@ import { RevealObserver } from "./_components/RevealObserver";
 import { CodeTabs } from "./_components/CodeTabs";
 import { Nav } from "./_components/Nav";
 import { LiveDepth } from "./_components/LiveDepth";
+import { SqlPlayground } from "./explore/sql/_playground";
 
 export default function Home() {
   return (
@@ -31,8 +32,11 @@ export default function Home() {
             Live depth: <LiveDepth />
           </p>
           <div className="cta-row">
-            <a className="btn btn-primary" href="/explore">
-              Explore live dashboards
+            <a className="btn btn-primary" href="#sql">
+              Run a query now
+            </a>
+            <a className="btn" href="/explore">
+              Live dashboards
             </a>
             <a className="btn" href="#endpoints">
               Browse endpoints
@@ -48,6 +52,36 @@ export default function Home() {
             >
               Source on GitHub
             </a>
+          </div>
+        </section>
+
+        {/* SQL playground — front and centre */}
+        <section className="block reveal" id="sql">
+          <div className="container">
+            <p className="section-eyebrow">live · sql · in your browser</p>
+            <h2 className="section-title">Skip the endpoints. Write the query.</h2>
+            <p className="section-lede">
+              Direct DataFusion-flavoured SQL against the indexed Arbitrum One
+              tables. Same engine the endpoints below sit on top of — one
+              example loaded for you, hit <kbd className="kbd">⌘</kbd> +{" "}
+              <kbd className="kbd">↩</kbd> to run. Read-only, single-statement,
+              must reference <code>block_num</code> so the scan stays bounded.
+            </p>
+            <SqlPlayground />
+            <p
+              className="lede"
+              style={{
+                marginTop: 24,
+                fontSize: "0.92em",
+                color: "var(--text-muted)",
+              }}
+            >
+              Want the full-page version with a bigger editor?{" "}
+              <a href="/explore/sql" className="inline-link">
+                /explore/sql
+              </a>
+              .
+            </p>
           </div>
         </section>
 
@@ -597,6 +631,7 @@ arbitrum one rpc`}
               <article className="endpoint-card half">
                 <p className="section-eyebrow" style={{ marginBottom: 8 }}>in scope</p>
                 <ul style={{ paddingLeft: 18, lineHeight: 1.8 }}>
+                  <li>Raw <code>POST /v1/sql</code> for arbitrary SELECTs</li>
                   <li>Event history for any contract, any block range</li>
                   <li>Transaction lookups by hash, sender, or recipient</li>
                   <li>Topic-indexed filtering (sender, recipient, token IDs)</li>
@@ -607,7 +642,6 @@ arbitrum one rpc`}
               <article className="endpoint-card half">
                 <p className="section-eyebrow" style={{ marginBottom: 8 }}>out of scope</p>
                 <ul style={{ paddingLeft: 18, lineHeight: 1.8 }}>
-                  <li>Raw SQL — write your own indexer for that</li>
                   <li>Token balances (events, not state)</li>
                   <li>USD prices — bring your own oracle</li>
                   <li>Decoded calldata / 4byte resolution</li>
