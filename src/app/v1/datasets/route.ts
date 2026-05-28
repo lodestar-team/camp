@@ -135,6 +135,13 @@ export async function GET() {
       streams: [
         { url: "/v1/stream/blocks", description: "live block headers as they're indexed (SSE)" },
       ],
+      auth: {
+        mint_url: "/v1/tokens",
+        inspect_url: "/v1/tokens/me",
+        anonymous: { per_minute: 30, per_hour: 500 },
+        with_token: { per_minute: 300, per_hour: 5000 },
+        note: "anonymous bearer tokens — POST /v1/tokens to mint; no PII required",
+      },
       openapi: {
         url: "/openapi.yaml",
         version: "3.1.0",

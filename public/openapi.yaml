@@ -1,12 +1,16 @@
 openapi: 3.1.0
 info:
   title: camp
-  version: 0.2.0
+  version: 0.3.0
   summary: Free Dune-class data API for Arbitrum One.
   description: |
     Decoded protocol tables and raw EVM data for Arbitrum One, served from a
-    self-hosted Amp node. No signup, no API key. Rate-limited at 30/min and
-    500/hour per IP.
+    self-hosted Amp node. No signup, no API key needed.
+
+    **Rate limits:** anonymous 30 / min · 500 / hour per IP. Mint an
+    anonymous bearer token at `POST /v1/tokens` for the higher tier:
+    300 / min · 5,000 / hour per token. Tokens carry no PII and don't
+    require a signup.
 
     Live UI and dashboards: https://camp.cargopete.com/explore
   license:
@@ -23,6 +27,8 @@ servers:
 tags:
   - name: status
     description: Engine + dataset state
+  - name: auth
+    description: Anonymous tokens for higher per-user rate limits
   - name: lookups
     description: Block / tx / address queries
   - name: decoded
@@ -36,7 +42,67 @@ tags:
   - name: streams
     description: Server-Sent Events feeds
 
+security:
+  - {}
+  - bearerAuth: []
+
 paths:
+  /v1/tokens:
+    post:
+      tags: [auth]
+      summary: Mint an anonymous bearer token
+      operationId: mintToken
+      description: |
+        Creates a fresh opaque bearer token bound to no PII. Sending it on
+        subsequent requests bumps your rate limits from the anonymous tier
+        (30 / min · 500 / hour) to the token tier (300 / min · 5,000 / hour).
+
+        Token-minting itself is rate-limited to **5 / day per IP** so the
+        token tier can't be Sybil-farmed casually.
+
+        Tokens are 30-day sliding TTL — every successful authenticated
+        request refreshes their lifetime. They cannot be retrieved later;
+        store the response when you mint.
+      security: []
+      responses:
+        "201":
+          description: Token created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenMintResponse" }
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    get:
+      tags: [auth]
+      summary: Token endpoint contract
+      operationId: tokenDocs
+      security: []
+      responses:
+        "200":
+          description: Self-describing JSON for the mint endpoint
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+
+  /v1/tokens/me:
+    get:
+      tags: [auth]
+      summary: Inspect own token + current quota
+      operationId: tokenSelf
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Token metadata + remaining quota
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenInspect" }
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
   /v1/status:
     get:
       tags: [status]
@@ -508,6 +574,17 @@ components:
         Retry-After:
           schema: { type: integer }
 
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: camp_<32 base32>
+      description: |
+        Optional bearer token from `POST /v1/tokens`. Carrying it lifts
+        rate limits from anonymous (30/min · 500/hour, per IP) to token
+        (300/min · 5000/hour, per token). Curl-friendly alias:
+        `X-Camp-Token: camp_<token>`.
+
   schemas:
     EvmAddress:
       type: string
@@ -667,3 +744,46 @@ components:
             type: object
             additionalProperties: true
         elapsed_ms: { type: integer }
+
+    TokenLimits:
+      type: object
+      properties:
+        per_minute: { type: integer, example: 300 }
+        per_hour: { type: integer, example: 5000 }
+
+    TokenMintResponse:
+      type: object
+      required: [token, limits, ttl_seconds]
+      properties:
+        token:
+          type: string
+          example: camp_aifqzj2xs7eb6dgr3qk2eyhwwc25mra4
+          description: Opaque bearer token. Store this — it cannot be retrieved later.
+        created_at: { type: string, format: date-time }
+        limits: { $ref: "#/components/schemas/TokenLimits" }
+        ttl_seconds:
+          type: integer
+          example: 2592000
+          description: 30 days. Sliding — refreshed on every authenticated request.
+        use:
+          type: object
+          properties:
+            header: { type: string, example: "Authorization: Bearer camp_..." }
+            alias: { type: string, example: "X-Camp-Token: camp_..." }
+        inspect_url: { type: string, example: /v1/tokens/me }
+        note: { type: string }
+
+    TokenInspect:
+      type: object
+      properties:
+        token_prefix: { type: string, example: "camp_aifq…" }
+        created_at: { type: string, format: date-time, nullable: true }
+        ttl_seconds: { type: integer }
+        tier: { type: string, enum: [anonymous, token] }
+        limits: { $ref: "#/components/schemas/TokenLimits" }
+        remaining: { $ref: "#/components/schemas/TokenLimits" }
+        reset:
+          type: object
+          properties:
+            per_minute: { type: integer, description: "Unix ms when the minute window resets" }
+            per_hour: { type: integer, description: "Unix ms when the hour window resets" }

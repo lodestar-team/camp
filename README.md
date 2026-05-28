@@ -32,7 +32,32 @@ curl -X POST https://camp.cargopete.com/v1/sql \
           ORDER BY block_num DESC'
 ```
 
-No key, no signup. Same limits for everyone: 30 req/min · 500 req/hour per IP · 100,000 block span · 1,000 rows · 8 s server-side timeout. Edge cache: 1 h for finalized ranges, 5 s near tip.
+No key, no signup. Anonymous limits: 30 req/min · 500 req/hour per IP. Per-request caps: 100,000 block span · 1,000 rows · 8 s server-side timeout. Edge cache: 1 h for finalized ranges, 5 s near tip.
+
+---
+
+## Higher limits — anonymous bearer tokens
+
+For dashboards, bots, and indexers that bump the anonymous tier, mint a token (no signup, no PII):
+
+```bash
+curl -X POST https://camp.cargopete.com/v1/tokens
+# → { "token": "camp_aifqzj2xs7eb6dgr3qk2eyhwwc25mra4", "limits": { "per_minute": 300, "per_hour": 5000 }, "ttl_seconds": 2592000, ... }
+
+curl https://camp.cargopete.com/v1/status \
+  -H "Authorization: Bearer camp_aifqzj2xs7eb6dgr3qk2eyhwwc25mra4"
+```
+
+| Tier | Per minute | Per hour | Identifier |
+|---|---|---|---|
+| anonymous | 30 | 500 | IP |
+| token | 300 | 5,000 | token |
+
+- **Token minting** is itself rate-limited to **5 / day per IP** (Sybil deterrent — won't stop a botnet but stops casual abuse).
+- **Token lifetime** is **30 days sliding** — every authenticated request refreshes it. Idle tokens self-expire.
+- **Curl-friendly alias** if you'd rather not deal with `Authorization`: `X-Camp-Token: camp_<token>`.
+- **Inspect your token** at `GET /v1/tokens/me` with the bearer header set.
+- **No signup, no PII, no email.** The token is the identity.
 
 ---
 
@@ -52,6 +77,13 @@ The **SQL playground** at [`/explore/sql`](https://camp.cargopete.com/explore/sq
 ---
 
 ## Endpoints
+
+### Auth
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/v1/tokens` | Mint an anonymous bearer token (5/day per IP) |
+| GET | `/v1/tokens/me` | Inspect own token + remaining quota |
 
 ### Lookups & queries
 
