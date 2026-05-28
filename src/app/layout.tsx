@@ -15,11 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "camp — community Amp for Arbitrum One",
+  title: "camp — Arbitrum's data engine",
   description:
     "Free, tip-fresh REST gateway over Arbitrum One blocks/transactions/logs. Self-hosted Amp node, no SLA, no signup.",
   openGraph: {
-    title: "camp — community Amp for Arbitrum One",
+    title: "camp — Arbitrum's data engine",
     description:
       "Free, tip-fresh REST gateway over Arbitrum One blocks/transactions/logs.",
   },

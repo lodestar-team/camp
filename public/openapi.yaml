@@ -12,16 +12,16 @@ info:
     300 / min · 5,000 / hour per token. Tokens carry no PII and don't
     require a signup.
 
-    Live UI and dashboards: https://camp.cargopete.com/explore
+    Live UI and dashboards: https://engine.camp/explore
   license:
     name: MIT
     url: https://github.com/lodestar-team/camp/blob/main/LICENSE
   contact:
     name: camp
-    url: https://camp.cargopete.com
+    url: https://engine.camp
 
 servers:
-  - url: https://camp.cargopete.com
+  - url: https://engine.camp
     description: Production
 
 tags:

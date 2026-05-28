@@ -64,6 +64,7 @@ export function Nav() {
             />
           </svg>
           camp
+          <span className="brand-domain" aria-hidden="true">engine.camp</span>
         </a>
         <nav className="nav-links">
           <NavDropdown label="explore" items={EXPLORE_ITEMS} />

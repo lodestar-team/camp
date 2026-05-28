@@ -149,6 +149,20 @@ button {
 .brand-mark {
   width: 18px; height: 18px;
 }
+.brand-domain {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  margin-left: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  line-height: 1.4;
+}
+.brand:hover .brand-domain {
+  border-color: var(--border-strong);
+}
 .nav-links {
   display: flex;
   gap: 20px;
@@ -292,6 +306,14 @@ button {
   color: var(--accent);
   font-style: italic;
   font-weight: 500;
+}
+.hero-domain {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  margin-top: -12px;
+  margin-bottom: 28px;
 }
 .hero .lede {
   max-width: 60ch;

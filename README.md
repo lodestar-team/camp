@@ -2,7 +2,7 @@
 
 **Free Dune-class data API for Arbitrum One.** Decoded protocol events, indexed at chain tip, no signup, no API key, no quota dashboard. Same query shape Dune offers (decoded protocol tables) — but live and free.
 
-Live at **https://camp.cargopete.com**.
+Live at **https://engine.camp**.
 
 📖 Background reads: [intro to camp](https://www.lodestar-dashboard.com/blog/camp-free-amp-api-arbitrum) · [camp deep dive](https://www.lodestar-dashboard.com/blog/camp-deep-dive)
 
@@ -16,15 +16,15 @@ Three lines that get you something useful, with no setup:
 
 ```bash
 # 1) Where is the chain tip?
-curl https://camp.cargopete.com/v1/status
+curl https://engine.camp/v1/status
 
 # 2) USDC Transfer events in a 1,000-block window
-curl "https://camp.cargopete.com/v1/transfers\
+curl "https://engine.camp/v1/transfers\
 ?token=0xaf88d065e77c8cc2239327c5edb3a432268e5831\
 &from_block=467200000&to_block=467201000&limit=20"
 
 # 3) Raw SQL — anything DataFusion accepts, as long as it filters on block_num
-curl -X POST https://camp.cargopete.com/v1/sql \
+curl -X POST https://engine.camp/v1/sql \
   -H "Content-Type: text/plain" \
   --data 'SELECT block_num, gas_used
           FROM "_/arbitrum_one@2.0.0".blocks
@@ -41,10 +41,10 @@ No key, no signup. Anonymous limits: 30 req/min · 500 req/hour per IP. Per-requ
 For dashboards, bots, and indexers that bump the anonymous tier, mint a token (no signup, no PII):
 
 ```bash
-curl -X POST https://camp.cargopete.com/v1/tokens
+curl -X POST https://engine.camp/v1/tokens
 # → { "token": "camp_aifqzj2xs7eb6dgr3qk2eyhwwc25mra4", "limits": { "per_minute": 300, "per_hour": 5000 }, "ttl_seconds": 2592000, ... }
 
-curl https://camp.cargopete.com/v1/status \
+curl https://engine.camp/v1/status \
   -H "Authorization: Bearer camp_aifqzj2xs7eb6dgr3qk2eyhwwc25mra4"
 ```
 
@@ -72,7 +72,7 @@ A few things people are actually building (or could build in an afternoon) on to
 - **Staking analytics** — `/v1/horizon/{event}` decodes 12 Graph Horizon events (stake, delegation, slashing, …) — used in production by [Lodestar Dashboard](https://www.lodestar-dashboard.com).
 - **Anything Dune does, but tip-fresh** — `POST /v1/sql` accepts arbitrary `SELECT` statements against `blocks` / `transactions` / `logs`. UDFs include `evm_decode_log`, `evm_topic`, `arrow_cast`. Decode any event from any contract, group/aggregate however you want, get JSON back.
 
-The **SQL playground** at [`/explore/sql`](https://camp.cargopete.com/explore/sql) lets you run all of these straight from the browser.
+The **SQL playground** at [`/explore/sql`](https://engine.camp/explore/sql) lets you run all of these straight from the browser.
 
 ---
 
@@ -126,24 +126,24 @@ The **SQL playground** at [`/explore/sql`](https://camp.cargopete.com/explore/sq
 | GET | `/v1/datasets` | Full programmatic surface — raw + decoded + lookups + aggregates |
 | GET | `/v1/stream/blocks` | Server-Sent Events: new blocks as they're indexed |
 
-OpenAPI 3.1 spec at [`/openapi.yaml`](https://camp.cargopete.com/openapi.yaml); browsable reference at [`/docs`](https://camp.cargopete.com/docs).
+OpenAPI 3.1 spec at [`/openapi.yaml`](https://engine.camp/openapi.yaml); browsable reference at [`/docs`](https://engine.camp/docs).
 
 ---
 
 ## Dashboards
 
-[`/explore`](https://camp.cargopete.com/explore) — one UI surface for every v1 endpoint:
+[`/explore`](https://engine.camp/explore) — one UI surface for every v1 endpoint:
 
-- [`/explore/sql`](https://camp.cargopete.com/explore/sql) — Dune-style SQL playground with canned examples
-- [`/explore/uniswap-v3`](https://camp.cargopete.com/explore/uniswap-v3) — decoded swap/mint/burn per pool
-- [`/explore/horizon`](https://camp.cargopete.com/explore/horizon) — Graph Horizon timeline with severity accents
-- [`/explore/whales`](https://camp.cargopete.com/explore/whales) — live big-Transfer ticker across the major tokens
-- [`/explore/gas`](https://camp.cargopete.com/explore/gas) — base-fee + throughput charts
-- [`/explore/token`](https://camp.cargopete.com/explore/token) — bucketed volume + recent transfers for any ERC-20
-- [`/explore/address`](https://camp.cargopete.com/explore/address) — wallet profile (tx + transfers + interactions)
-- [`/explore/contract`](https://camp.cargopete.com/explore/contract) — log-count time-series for any contract
-- [`/explore/lookup`](https://camp.cargopete.com/explore/lookup) — ad-hoc block / tx / events forms
-- [`/explore/signatures`](https://camp.cargopete.com/explore/signatures) — well-known topic0 reference
+- [`/explore/sql`](https://engine.camp/explore/sql) — Dune-style SQL playground with canned examples
+- [`/explore/uniswap-v3`](https://engine.camp/explore/uniswap-v3) — decoded swap/mint/burn per pool
+- [`/explore/horizon`](https://engine.camp/explore/horizon) — Graph Horizon timeline with severity accents
+- [`/explore/whales`](https://engine.camp/explore/whales) — live big-Transfer ticker across the major tokens
+- [`/explore/gas`](https://engine.camp/explore/gas) — base-fee + throughput charts
+- [`/explore/token`](https://engine.camp/explore/token) — bucketed volume + recent transfers for any ERC-20
+- [`/explore/address`](https://engine.camp/explore/address) — wallet profile (tx + transfers + interactions)
+- [`/explore/contract`](https://engine.camp/explore/contract) — log-count time-series for any contract
+- [`/explore/lookup`](https://engine.camp/explore/lookup) — ad-hoc block / tx / events forms
+- [`/explore/signatures`](https://engine.camp/explore/signatures) — well-known topic0 reference
 
 ---
 
@@ -152,7 +152,7 @@ OpenAPI 3.1 spec at [`/openapi.yaml`](https://camp.cargopete.com/openapi.yaml); 
 ```
 client
   ↓
-camp.cargopete.com                  (edge: TLS, DDoS, CDN cache)
+engine.camp                         (edge: TLS, DDoS, CDN cache)
   ↓
 Cloudflare Quick Tunnel             (private origin link;
   ↓                                  URL auto-rotates and re-syncs to Vercel env)
