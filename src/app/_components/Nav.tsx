@@ -21,6 +21,27 @@ const DOCS_ITEMS: DropdownItem[] = [
   { href: "/#endpoints", label: "endpoint catalog", desc: "list with code samples (curl / js / py / rust)" },
   { href: "/v1/datasets", label: "datasets surface", desc: "JSON description of every endpoint family" },
   { href: "/v1/status", label: "status JSON", desc: "tip block, indexed count, history depth" },
+  {
+    href: "https://github.com/lodestar-team/camp#readme",
+    label: "README",
+    desc: "project overview on GitHub",
+    external: true,
+  },
+];
+
+const LEARN_ITEMS: DropdownItem[] = [
+  {
+    href: "https://www.lodestar-dashboard.com/blog/camp-free-amp-api-arbitrum",
+    label: "intro to camp",
+    desc: "what it is, why we built it, how to use it",
+    external: true,
+  },
+  {
+    href: "https://www.lodestar-dashboard.com/blog/camp-deep-dive",
+    label: "camp deep dive",
+    desc: "architecture, indexer internals, the Flight shim",
+    external: true,
+  },
 ];
 
 export function Nav() {
@@ -47,6 +68,7 @@ export function Nav() {
         <nav className="nav-links">
           <NavDropdown label="explore" items={EXPLORE_ITEMS} />
           <NavDropdown label="docs" items={DOCS_ITEMS} />
+          <NavDropdown label="learn" items={LEARN_ITEMS} />
           <StatusBadge />
           <a
             href="https://github.com/lodestar-team/camp"
