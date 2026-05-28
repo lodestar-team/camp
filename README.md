@@ -1,4 +1,4 @@
-# camp
+# camp 🏕️
 
 **Free Dune-class data API for Arbitrum One.** Decoded protocol events, indexed at chain tip, no signup, no API key, no quota dashboard. Same query shape Dune offers (decoded protocol tables) — but live and free.
 
