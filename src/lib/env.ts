@@ -3,7 +3,7 @@ import { z } from "zod";
 const schema = z.object({
   AMP_ORIGIN: z.string().url(),
   AMP_TOKEN: z.string().min(16),
-  AMP_DATASET: z.string().default("_/arbitrum_one@1.0.0"),
+  AMP_DATASET: z.string().default("_/arbitrum_one@2.0.0"),
   AMP_QUERY_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
