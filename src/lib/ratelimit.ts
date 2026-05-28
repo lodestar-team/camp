@@ -145,30 +145,3 @@ export async function checkMintLimit(req: Request): Promise<number | null> {
   return r.success ? null : Math.ceil((r.reset - Date.now()) / 1000);
 }
 
-// Returns current quota snapshot for a key (token or IP). Pure observability;
-// doesn't consume a request.
-export async function inspectQuota(opts: {
-  token: string | null;
-}): Promise<{
-  tier: "anonymous" | "token";
-  limits: { per_minute: number; per_hour: number };
-  remaining: { per_minute: number; per_hour: number };
-  reset: { per_minute: number; per_hour: number };
-} | null> {
-  if (!perMinuteIp || !perHourIp || !perMinuteToken || !perHourToken) return null;
-  if (opts.token) {
-    const valid = await isTokenValid(opts.token);
-    if (!valid) return null;
-    const [m, h] = await Promise.all([
-      perMinuteToken.getRemaining(opts.token),
-      perHourToken.getRemaining(opts.token),
-    ]);
-    return {
-      tier: "token",
-      limits: TOKEN_LIMITS.token,
-      remaining: { per_minute: m.remaining, per_hour: h.remaining },
-      reset: { per_minute: m.reset, per_hour: h.reset },
-    };
-  }
-  return null;
-}

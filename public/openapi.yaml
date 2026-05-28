@@ -778,12 +778,6 @@ components:
       properties:
         token_prefix: { type: string, example: "camp_aifq…" }
         created_at: { type: string, format: date-time, nullable: true }
-        ttl_seconds: { type: integer }
-        tier: { type: string, enum: [anonymous, token] }
+        ttl_seconds: { type: integer, description: "Seconds until this token expires." }
+        tier: { type: string, enum: [token] }
         limits: { $ref: "#/components/schemas/TokenLimits" }
-        remaining: { $ref: "#/components/schemas/TokenLimits" }
-        reset:
-          type: object
-          properties:
-            per_minute: { type: integer, description: "Unix ms when the minute window resets" }
-            per_hour: { type: integer, description: "Unix ms when the hour window resets" }

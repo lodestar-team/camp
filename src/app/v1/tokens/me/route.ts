@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   redis,
   clientToken,
-  inspectQuota,
+  TOKEN_LIMITS,
   TOKEN_TTL_SECONDS,
 } from "@/lib/ratelimit";
 import { handle, ApiError } from "@/lib/errors";
@@ -24,9 +24,18 @@ export async function GET(req: Request) {
     if (!redis) {
       throw new ApiError("internal", 503, "tokens require Redis");
     }
-    const meta = (await redis.hgetall(`amp-api:token:${token}`)) as
-      | { created_at?: string; tier?: string }
-      | null;
+    // Single round-trip: hgetall + ttl via a pipeline-ish pair. We
+    // deliberately don't call getRemaining() here — the sliding-window
+    // counters under each token are a different keyspace, and chaining
+    // them adds round-trips that pushed this endpoint past the
+    // function timeout in prod.
+    const [meta, ttl] = await Promise.all([
+      redis.hgetall(`amp-api:token:${token}`) as Promise<{
+        created_at?: string;
+        tier?: string;
+      } | null>,
+      redis.ttl(`amp-api:token:${token}`),
+    ]);
     if (!meta || Object.keys(meta).length === 0) {
       throw new ApiError(
         "bad_request",
@@ -35,18 +44,15 @@ export async function GET(req: Request) {
         "mint a new one at POST /v1/tokens",
       );
     }
-    const quota = await inspectQuota({ token });
-    const ttl = await redis.ttl(`amp-api:token:${token}`);
 
     return NextResponse.json(
       {
         token_prefix: `${token.slice(0, 10)}…`,
         created_at: meta.created_at ?? null,
         ttl_seconds: ttl >= 0 ? ttl : TOKEN_TTL_SECONDS,
-        tier: quota?.tier ?? "token",
-        limits: quota?.limits ?? null,
-        remaining: quota?.remaining ?? null,
-        reset: quota?.reset ?? null,
+        tier: "token",
+        limits: TOKEN_LIMITS.token,
+        note: "live remaining-quota numbers aren't exposed yet — they live in a separate sliding-window keyspace.",
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );
