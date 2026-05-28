@@ -42,6 +42,12 @@ const LEARN_ITEMS: DropdownItem[] = [
     desc: "architecture, indexer internals, the Flight shim",
     external: true,
   },
+  {
+    href: "https://cargopete.substack.com/p/enginecamp-is-live-a-free-tip-fresh",
+    label: "camp launch post on Substack",
+    desc: "the launch — what shipped, how to use it, run your own",
+    external: true,
+  },
 ];
 
 export function Nav() {
