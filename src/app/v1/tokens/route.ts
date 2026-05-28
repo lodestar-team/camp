@@ -74,11 +74,14 @@ export async function POST(req: Request) {
 
     const token = newToken();
     const created_at = new Date().toISOString();
-    await redis.hset(`amp-api:token:${token}`, {
-      created_at,
-      tier: "token",
-    });
-    await redis.expire(`amp-api:token:${token}`, TOKEN_TTL_SECONDS);
+    // String-typed value (JSON) rather than a Redis hash — our self-hosted
+    // HTTP shim implements the SET / GET / EXPIRE commands but not the
+    // HSET / HGETALL family. Simpler keyspace, one fewer round-trip.
+    await redis.set(
+      `amp-api:token:${token}`,
+      JSON.stringify({ created_at, tier: "token" }),
+      { ex: TOKEN_TTL_SECONDS },
+    );
 
     return NextResponse.json(
       {
