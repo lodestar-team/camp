@@ -228,23 +228,39 @@ export function UniswapV3Dashboard() {
         <span className="mono">{`/v1/uniswap-v3/${slug}?pool=${pool.address}&\u2026`}</span>
       </div>
 
-      {loading ? (
-        <div className="disclaimer" style={{ marginTop: 20 }}>
-          Loading…
-        </div>
-      ) : error ? (
-        <div className="disclaimer" style={{ marginTop: 20 }}>
-          error: <code>{error}</code>
-        </div>
-      ) : !data || data.events.length === 0 ? (
-        <div className="disclaimer" style={{ marginTop: 20 }}>
-          No {slug} events in the last 5,000 blocks for this pool.
-        </div>
-      ) : slug === "swap" ? (
-        <SwapTable rows={data.events as SwapRow[]} pool={pool} />
-      ) : (
-        <MintBurnTable rows={data.events as MintBurnRow[]} pool={pool} />
-      )}
+      {(() => {
+        // Stale-data guard: between a slug click and the next fetch,
+        // `data` still holds rows from the previous slug. Treating that
+        // as "for the new slug" causes crashes — e.g. MintBurnTable
+        // reading `r.owner` on swap rows. Only trust data whose `event`
+        // matches what we're displaying.
+        const expectedEvent =
+          slug === "swap" ? "Swap" : slug === "mint" ? "Mint" : "Burn";
+        const fresh = data && data.event === expectedEvent ? data : null;
+        if (loading || !fresh) {
+          return error && !loading ? (
+            <div className="disclaimer" style={{ marginTop: 20 }}>
+              error: <code>{error}</code>
+            </div>
+          ) : (
+            <div className="disclaimer" style={{ marginTop: 20 }}>
+              Loading…
+            </div>
+          );
+        }
+        if (fresh.events.length === 0) {
+          return (
+            <div className="disclaimer" style={{ marginTop: 20 }}>
+              No {slug} events in the last 5,000 blocks for this pool.
+            </div>
+          );
+        }
+        return slug === "swap" ? (
+          <SwapTable rows={fresh.events as SwapRow[]} pool={pool} />
+        ) : (
+          <MintBurnTable rows={fresh.events as MintBurnRow[]} pool={pool} />
+        );
+      })()}
 
       <div className="dashboard-meta">
         <span>{data?.count ?? 0} events · refreshes every 12 s</span>
