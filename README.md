@@ -282,7 +282,8 @@ Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 - **Phase C** ✅ Raw `POST /v1/sql`, `/v1/datasets` catalog, `/v1/stream/blocks` SSE
 - **Phase D** ✅ OpenAPI 3.1 spec + `/docs` reference (Scalar)
 - **Phase E** ✅ Flight-native origin — ampd v0.0.36 behind a JSONL ⇆ Flight shim; working compactor
-- **Next** Anonymous tokens for higher per-user limits, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, webhooks.
+- **Phase F** ✅ Anonymous bearer tokens — opt-in for 10× per-IP limits (300/min · 5,000/hour) with no signup
+- **Next** GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
 
 ---
 

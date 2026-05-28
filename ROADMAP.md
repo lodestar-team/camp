@@ -75,10 +75,12 @@ camp graduates from API to platform.
 ships streaming + reorg detection + CDC events natively. We don't *build*
 streaming — we *expose* what's already there.
 
-### C1 · Tokens *(deferred — no immediate abuse pressure)*
-- [ ] Anonymous tokens auto-issued on first request, stored client-side
-- [ ] Per-token sliding-window + scan-byte budget
-- [ ] Higher-tier tokens with bigger budgets (email signup)
+### C1 · Tokens
+- [x] Anonymous bearer tokens via `POST /v1/tokens` (camp_<32 base32>, no PII, 30d sliding TTL)
+- [x] Per-token sliding-window rate limit (300/min · 5,000/hour vs anonymous 30/500)
+- [x] Mint endpoint itself IP rate-limited (5/day) — Sybil deterrent
+- [ ] Per-token scan-byte budget *(deferred — sliding-window covers DoS today)*
+- [ ] PoW-gated minting if Sybil pressure appears *(deferred — currently no abuse signal)*
 
 ### C2 · Raw query layer
 - [x] `POST /v1/sql` · raw `SELECT`, allowlisted, with required `block_num` filter, hard `LIMIT 1000`, 8s timeout
