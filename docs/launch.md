@@ -6,7 +6,7 @@
 
 We've been quietly running a small Arbitrum indexer in the corner of the office for a few months. Today it has a name, a domain, and an open invitation: **[engine.camp](https://engine.camp)**.
 
-camp is a Dune-class data API for Arbitrum One. Same query shape Dune offers — decoded protocol tables, parameterised aggregates, ad-hoc SQL — but live (tip-fresh, not the four-to-six-hour lag Dune ships with) and free at every tier we've thought about offering. It's a single REST surface over a self-hosted [Amp](https://github.com/amp-labs/amp) node, plus a thin Vercel-hosted gateway that does TLS, rate limits, and a handful of opinionated decoded views.
+camp is a Dune-class data API for Arbitrum One. Same query shape Dune offers — decoded protocol tables, parameterised aggregates, ad-hoc SQL — but live (tip-fresh, not the four-to-six-hour lag Dune ships with) and free at every tier we've thought about offering. It's a single REST surface over a self-hosted Amp node, plus a thin Vercel-hosted gateway that does TLS, rate limits, and a handful of opinionated decoded views.
 
 The whole stack — Next.js gateway, ops scripts, runbook — is open under [lodestar-team/camp](https://github.com/lodestar-team/camp) (MIT). Everything in this post is something you can read, run, or fork tonight.
 
@@ -130,7 +130,7 @@ Three things deserve explanation.
 
 ### ampd
 
-[ampd](https://github.com/amp-labs/amp) is what does the real work. Open-source, Rust, designed for SQL-against-EVM. It pulls blocks/receipts/logs from an RPC, writes them to Parquet on disk, exposes everything through Apache Arrow FlightSQL, and ships with the EVM-specific UDFs that make decoded queries possible. Compactor merges small parquets into bigger ones in the background; once that catches up, narrow-range queries return in well under a second.
+ampd is what does the real work. Open-source, Rust, designed for SQL-against-EVM. It pulls blocks/receipts/logs from an RPC, writes them to Parquet on disk, exposes everything through Apache Arrow FlightSQL, and ships with the EVM-specific UDFs that make decoded queries possible. Compactor merges small parquets into bigger ones in the background; once that catches up, narrow-range queries return in well under a second.
 
 We point ampd at a single dataset — `_/arbitrum_one@2.0.0` — and let it backfill from the block we cared about. Today that's `467,200,673` (May 27). The usable window grows by ~24h every calendar day; we're aiming for a rolling ~30d view long-term.
 
@@ -200,7 +200,7 @@ camp is a recipe, not a service. If you want your own — for a different chain,
 
 1. **An Arbitrum RPC.** Anything that supports `eth_getLogs` and `eth_getBlockByNumber` works. We use Lodestar's own RPC for ours; an Alchemy or Infura key works too. Free tiers are usually fine for the backfill if you're patient.
 2. **A server.** Anything Linux-ish with a few hundred GB of disk and enough RAM for ampd (we get away with 16 GB). A ThinkPad is fine. A NUC is fine. A small VPS is fine.
-3. **ampd.** [github.com/amp-labs/amp](https://github.com/amp-labs/amp). Single binary, configured via TOML, exposes FlightSQL on a local port. Deploys as a systemd unit. The amping repo has working configs (`ampd.toml`) and the dataset manifest (`amp.config.ts`) you can copy.
+3. **ampd.** Single binary, configured via TOML, exposes FlightSQL on a local port. Deploys as a systemd unit. The amping repo has working configs (`ampd.toml`) and the dataset manifest (`amp.config.ts`) you can copy.
 4. **The Flight shim.** Optional today, mandatory if you want to expose ampd over a network that speaks anything other than Arrow Flight. Our shim is in `~/amping/flight-shim/` — it's small enough to read in one sitting.
 5. **The gateway.** The Next.js 16 app at [lodestar-team/camp](https://github.com/lodestar-team/camp). `pnpm install && pnpm dev` works locally. Set `AMP_ORIGIN` to point at your shim and you're live.
 
