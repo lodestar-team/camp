@@ -29,13 +29,29 @@ export async function GET(req: Request) {
     // counters under each token are a different keyspace, and chaining
     // them adds round-trips that pushed this endpoint past the
     // function timeout in prod.
-    const [meta, ttl] = await Promise.all([
-      redis.hgetall(`amp-api:token:${token}`) as Promise<{
-        created_at?: string;
-        tier?: string;
-      } | null>,
-      redis.ttl(`amp-api:token:${token}`),
-    ]);
+    const key = `amp-api:token:${token}`;
+    const t0 = Date.now();
+    const exists = await redis.exists(key);
+    const t1 = Date.now();
+    console.log(`tokens/me: exists=${exists} in ${t1 - t0}ms`);
+    if (exists !== 1) {
+      throw new ApiError(
+        "bad_request",
+        401,
+        "unknown or expired token",
+        "mint a new one at POST /v1/tokens",
+      );
+    }
+    const meta = (await redis.hgetall(key)) as {
+      created_at?: string;
+      tier?: string;
+    } | null;
+    const t2 = Date.now();
+    console.log(`tokens/me: hgetall in ${t2 - t1}ms (keys=${meta ? Object.keys(meta).length : 0})`);
+    const ttl = await redis.ttl(key);
+    const t3 = Date.now();
+    console.log(`tokens/me: ttl=${ttl} in ${t3 - t2}ms`);
+
     if (!meta || Object.keys(meta).length === 0) {
       throw new ApiError(
         "bad_request",
