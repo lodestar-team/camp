@@ -2,9 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
-      "source": "/:path*",
+      "source": "/",
       "has": [{ "type": "host", "value": "camp.cargopete.com" }],
-      "destination": "https://engine.camp/:path*",
+      "destination": "https://engine.camp/",
+      "permanent": true
+    },
+    {
+      "source": "/:path+",
+      "has": [{ "type": "host", "value": "camp.cargopete.com" }],
+      "destination": "https://engine.camp/:path+",
       "permanent": true
     }
   ]
