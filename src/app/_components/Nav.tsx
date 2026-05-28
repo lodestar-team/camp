@@ -16,17 +16,17 @@ const EXPLORE_ITEMS: DropdownItem[] = [
 ];
 
 const DOCS_ITEMS: DropdownItem[] = [
+  {
+    href: "https://github.com/lodestar-team/camp#readme",
+    label: "README",
+    desc: "everything you'll ever need to know about camp",
+    external: true,
+  },
   { href: "/docs", label: "API reference", desc: "browsable OpenAPI 3.1 (Scalar)" },
   { href: "/openapi.yaml", label: "openapi.yaml", desc: "raw spec — feed to your client generator" },
   { href: "/#endpoints", label: "endpoint catalog", desc: "list with code samples (curl / js / py / rust)" },
   { href: "/v1/datasets", label: "datasets surface", desc: "JSON description of every endpoint family" },
   { href: "/v1/status", label: "status JSON", desc: "tip block, indexed count, history depth" },
-  {
-    href: "https://github.com/lodestar-team/camp#readme",
-    label: "README",
-    desc: "project overview on GitHub",
-    external: true,
-  },
 ];
 
 const LEARN_ITEMS: DropdownItem[] = [
