@@ -7,7 +7,7 @@ highest-value moves require it.*
 
 Snapshot when written (2026-06-04): ~6,950 LOC, 33 endpoints, 10 dashboards,
 2 decoded protocols (Horizon + Uniswap V3), Arbitrum One only, ~tip lag 7s,
-single ThinkPad, history window being extended from ~days → 6 months.
+single ThinkPad, history window being extended from ~days → 3 months.
 
 ---
 
@@ -24,10 +24,15 @@ single ThinkPad, history window being extended from ~days → 6 months.
 **Status: in progress (2026-06-04).** The short window is what makes camp read
 as a *toy* next to Dune — no real historical analytics. It is **not an engine
 limit, it's a retention/start-block config**. Disk is at 14% of 1.9 TB
-(~1.6 TB free); ~7.8 GB per million blocks → 6 months (~63 M blocks) ≈ 350–490 GB,
-fits comfortably. Backfilling to a 6-month window is the biggest
-credibility-per-hour move available. (Backfill = wipe + re-index from
-`tip − 183d`; costs ~1–2 days of degraded tip-freshness while it crawls to head.)
+(~1.6 TB free), so storage isn't the constraint — **RPC throughput is**. Our
+InfraDAO node tops out ~125–150 blocks/sec for full blocks+receipts even batched,
+so backfill ETA is what bounds the window: 6 months (~63 M blocks) ≈ 5–6 days,
+3 months (~31 M) ≈ 3 days. **Chose 3 months** to keep the stale-tip window
+(backfill fills oldest→newest) to ~3 days. Backfill = wipe + re-index from
+`tip − 90d` via `~/amping/deploy/reindex-3months.sh`. Critical: needs
+`rpc_batch_size` set in the provider config (50, not 100 — Arbitrum trips
+`-32003 response too large`) or it crawls at ~12 blocks/sec. Next throughput
+lever is a 2nd RPC provider (round-robin), not more disk.
 
 ## Tier 1 — days, engine-agnostic, trust/adoption
 
