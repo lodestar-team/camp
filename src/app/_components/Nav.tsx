@@ -22,6 +22,12 @@ const DOCS_ITEMS: DropdownItem[] = [
     desc: "everything you'll ever need to know about camp",
     external: true,
   },
+  {
+    href: "https://github.com/lodestar-team/camp/blob/main/docs/ops/solo-setup.md",
+    label: "running your own (solo setup)",
+    desc: "ampd.toml, systemd unit, compaction troubleshooting",
+    external: true,
+  },
   { href: "/docs", label: "API reference", desc: "browsable OpenAPI 3.1 (Scalar)" },
   { href: "/openapi.yaml", label: "openapi.yaml", desc: "raw spec — feed to your client generator" },
   { href: "/#endpoints", label: "endpoint catalog", desc: "list with code samples (curl / js / py / rust)" },
