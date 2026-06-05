@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ampQuery, table } from "@/lib/amp";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { handle } from "@/lib/errors";
+import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const maxDuration = 10;
@@ -33,6 +34,7 @@ export async function GET(req: Request) {
     return NextResponse.json(
       {
         chain: "arbitrum-one",
+        dataset: env.AMP_DATASET,
         latest_indexed_block: Number(row.tip ?? 0),
         earliest_indexed_block: Number(row.earliest ?? 0),
         blocks_indexed: Number(row.blocks_indexed ?? 0),

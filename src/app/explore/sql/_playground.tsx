@@ -12,12 +12,16 @@ type SqlError = {
   error: { code: string; message: string; hint?: string };
 };
 
-type Status = { latest_indexed_block: number };
+type Status = { latest_indexed_block: number; dataset?: string };
 
-const EXAMPLES: { label: string; sql: (tip: number) => string }[] = [
+// Fallback only — the live value comes from /v1/status (driven by AMP_DATASET),
+// so examples track whatever version the API is actually serving.
+const DEFAULT_DATASET = "_/arbitrum_one@4.0.1";
+
+const EXAMPLES: { label: string; sql: (tip: number, ds: string) => string }[] = [
   {
     label: "USDC volume per minute",
-    sql: (tip) => `SELECT
+    sql: (tip, ds) => `SELECT
   date_trunc('minute', timestamp) AS bucket,
   COUNT(*) AS transfers,
   arrow_cast(
@@ -28,7 +32,7 @@ FROM (
   SELECT timestamp,
     (evm_decode_log(topic1, topic2, topic3, data,
       'Transfer(address indexed from, address indexed to, uint256 value)')) AS d
-  FROM "_/arbitrum_one@2.0.0".logs
+  FROM "${ds}".logs
   WHERE block_num BETWEEN ${tip - 300} AND ${tip}
     AND address = X'af88d065e77c8cc2239327c5edb3a432268e5831'
     AND topic0  = evm_topic('Transfer(address,address,uint256)')
@@ -38,10 +42,10 @@ ORDER BY 1`,
   },
   {
     label: "Hottest contracts in the last 500 blocks",
-    sql: (tip) => `SELECT
+    sql: (tip, ds) => `SELECT
   encode(arrow_cast(address, 'Binary'), 'hex') AS contract,
   COUNT(*) AS log_count
-FROM "_/arbitrum_one@2.0.0".logs
+FROM "${ds}".logs
 WHERE block_num BETWEEN ${tip - 500} AND ${tip}
 GROUP BY 1
 ORDER BY log_count DESC
@@ -49,7 +53,7 @@ LIMIT 10`,
   },
   {
     label: "Uniswap V3 swaps with biggest token0 movement",
-    sql: (tip) => `SELECT
+    sql: (tip, ds) => `SELECT
   block_num,
   arrow_cast(d['amount0'], 'Utf8') AS amount0,
   arrow_cast(d['amount1'], 'Utf8') AS amount1,
@@ -58,7 +62,7 @@ FROM (
   SELECT block_num,
     (evm_decode_log(topic1, topic2, topic3, data,
       'Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)')) AS d
-  FROM "_/arbitrum_one@2.0.0".logs
+  FROM "${ds}".logs
   WHERE block_num BETWEEN ${tip - 1000} AND ${tip}
     AND address = X'c6962004f452be9203591991d15f6b388e09e8d0'
     AND topic0  = evm_topic('Swap(address,address,int256,int256,uint160,uint128,int24)')
@@ -68,12 +72,12 @@ LIMIT 10`,
   },
   {
     label: "Gas stats per minute",
-    sql: (tip) => `SELECT
+    sql: (tip, ds) => `SELECT
   date_trunc('minute', timestamp) AS bucket,
   COUNT(*) AS blocks,
   AVG(gas_used) AS avg_gas,
   AVG(base_fee_per_gas) AS avg_base_fee
-FROM "_/arbitrum_one@2.0.0".blocks
+FROM "${ds}".blocks
 WHERE block_num BETWEEN ${tip - 1000} AND ${tip}
 GROUP BY 1
 ORDER BY 1 DESC`,
@@ -86,22 +90,26 @@ export function SqlPlayground() {
   const [result, setResult] = useState<SqlResponse | null>(null);
   const [error, setError] = useState<SqlError["error"] | null>(null);
   const [tip, setTip] = useState<number | null>(null);
+  const [dataset, setDataset] = useState<string>(DEFAULT_DATASET);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch tip once for examples
+  // Fetch tip + live dataset ref once for examples
   useEffect(() => {
     fetch("/v1/status", { cache: "no-store" })
       .then((r) => r.json())
-      .then((s: Status) => setTip(s.latest_indexed_block))
+      .then((s: Status) => {
+        setTip(s.latest_indexed_block);
+        if (s.dataset) setDataset(s.dataset);
+      })
       .catch(() => {});
   }, []);
 
   // Seed initial example after tip arrives
   useEffect(() => {
     if (tip != null && sql === "") {
-      setSql(EXAMPLES[0]!.sql(tip));
+      setSql(EXAMPLES[0]!.sql(tip, dataset));
     }
-  }, [tip, sql]);
+  }, [tip, sql, dataset]);
 
   async function run() {
     if (running) return;
@@ -150,7 +158,7 @@ export function SqlPlayground() {
             key={ex.label}
             type="button"
             className="filter-chip"
-            onClick={() => tip != null && setSql(ex.sql(tip))}
+            onClick={() => tip != null && setSql(ex.sql(tip, dataset))}
             disabled={tip == null}
           >
             {ex.label}
@@ -166,7 +174,7 @@ export function SqlPlayground() {
           onChange={(e) => setSql(e.target.value)}
           onKeyDown={onKeyDown}
           spellCheck={false}
-          placeholder="SELECT block_num, gas_used FROM &quot;_/arbitrum_one@2.0.0&quot;.blocks WHERE block_num BETWEEN tip-100 AND tip"
+          placeholder={`SELECT block_num, gas_used FROM "${dataset}".blocks WHERE block_num BETWEEN tip-100 AND tip`}
           rows={14}
         />
         <div className="sql-toolbar">

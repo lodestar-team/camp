@@ -3,6 +3,7 @@ import { ampQuery } from "@/lib/amp";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { handle, ApiError } from "@/lib/errors";
 import { guardSql, SQL_MAX_BYTES, SQL_FORCED_LIMIT } from "@/lib/sql-guard";
+import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const maxDuration = 10;
@@ -25,9 +26,9 @@ export async function GET() {
         "SQL comments, multiple statements, DDL/DML, file-IO functions, system catalogs",
     },
     available_tables: [
-      `_/arbitrum_one@2.0.0.blocks`,
-      `_/arbitrum_one@2.0.0.transactions`,
-      `_/arbitrum_one@2.0.0.logs`,
+      `${env.AMP_DATASET}.blocks`,
+      `${env.AMP_DATASET}.transactions`,
+      `${env.AMP_DATASET}.logs`,
     ],
     udfs: [
       "evm_decode_log(topic1, topic2, topic3, data, signature)",
@@ -39,7 +40,7 @@ export async function GET() {
     ],
     example: `SELECT date_trunc('minute', timestamp) AS bucket,
        COUNT(*) AS swaps
-FROM "_/arbitrum_one@2.0.0".logs
+FROM "${env.AMP_DATASET}".logs
 WHERE block_num BETWEEN 466940000 AND 466960000
   AND topic0 = evm_topic('Swap(address,address,int256,int256,uint160,uint128,int24)')
 GROUP BY 1

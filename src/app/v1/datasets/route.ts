@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { HORIZON_EVENTS, HORIZON_STAKING_ADDRESS } from "@/lib/horizon";
 import { UNISWAP_V3_EVENTS } from "@/lib/uniswap-v3";
+import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
+
+// The live dataset ref (e.g. "_/arbitrum_one@4.0.1") and its version tag,
+// both derived from AMP_DATASET so a reindex/repoint never leaves stale refs.
+const DATASET = env.AMP_DATASET;
+const DATASET_VERSION = DATASET.split("@")[1] ?? "unknown";
 
 // Catalog of every queryable surface camp exposes today. Acts as the
 // programmatic discovery endpoint (humans get the same in the landing
@@ -12,12 +18,12 @@ export async function GET() {
   const raw = {
     namespace: "_",
     name: "arbitrum_one",
-    version: "2.0.0",
+    version: DATASET_VERSION,
     description: "Raw Arbitrum One blocks, transactions, and logs.",
     tables: [
       {
         name: "blocks",
-        ref: '"_/arbitrum_one@2.0.0".blocks',
+        ref: `"${DATASET}".blocks`,
         fields: [
           "block_num",
           "timestamp",
@@ -34,7 +40,7 @@ export async function GET() {
       },
       {
         name: "transactions",
-        ref: '"_/arbitrum_one@2.0.0".transactions',
+        ref: `"${DATASET}".transactions`,
         fields: [
           "block_num",
           "tx_index",
@@ -56,7 +62,7 @@ export async function GET() {
       },
       {
         name: "logs",
-        ref: '"_/arbitrum_one@2.0.0".logs',
+        ref: `"${DATASET}".logs`,
         fields: [
           "block_num",
           "log_index",
