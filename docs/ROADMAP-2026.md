@@ -5,9 +5,10 @@
 value-per-effort, deliberately steering away from the engine swap — none of the
 highest-value moves require it.*
 
-Snapshot when written (2026-06-04): ~6,950 LOC, 33 endpoints, 10 dashboards,
-2 decoded protocols (Horizon + Uniswap V3), Arbitrum One only, ~tip lag 7s,
-single ThinkPad, history window being extended from ~days → 3 months.
+Snapshot when written (2026-06-04, history note revised 2026-06-05): ~6,950 LOC,
+33 endpoints, 10 dashboards, 2 decoded protocols (Horizon + Uniswap V3), Arbitrum
+One only, ~tip lag 7s, single ThinkPad. History accumulates on its own as ampd
+tip-follows (no retention cap) — no backfill planned; see below.
 
 ---
 
@@ -19,36 +20,41 @@ single ThinkPad, history window being extended from ~days → 3 months.
 
 ---
 
-## The single highest-leverage move: kill the short history window
+## History window: let it accumulate, don't backfill (unless deadline-driven)
 
-**Status: in progress (2026-06-04).** The short window is what makes camp read
-as a *toy* next to Dune — no real historical analytics. It is **not an engine
-limit, it's a retention/start-block config**. Disk is at 14% of 1.9 TB
-(~1.6 TB free), so storage isn't the constraint — **RPC throughput is**. Our
-InfraDAO node tops out ~125–150 blocks/sec for full blocks+receipts even batched,
-so backfill ETA is what bounds the window: 6 months (~63 M blocks) ≈ 5–6 days,
-3 months (~31 M) ≈ 3 days. **Chose 3 months** to keep the stale-tip window
-(backfill fills oldest→newest) to ~3 days. Backfill = wipe + re-index from
-`tip − 90d` via `~/amping/deploy/reindex-3months.sh`. Critical: needs
-`rpc_batch_size = 10` in the provider config (50 AND 100 both trip Arbitrum
-`-32003 response too large` on full blocks+receipts) or it crawls at ~12
-blocks/sec. Next throughput lever is a 2nd RPC provider (round-robin), not more disk.
+**Status: decided 2026-06-05 — we wait.** The earlier plan ("backfill to 3 months,
+it's the #1 move") was over-engineered. **ampd has no age-based retention** (verified
+against source: no `retention`/`max_age`/`ttl`/`rolling` anywhere; the collector/
+`gc_manifest` only reaps *orphaned/superseded* files, never live data by age). So as
+ampd tip-follows, **history grows ~1 day per day, for free** — ~90 MB/day, so 90 days
+≈ 8 GB, a year ≈ 33 GB on a 1.9 TB disk. The window deepens itself with zero RPC cost
+and zero risk. In ~90 days of uptime you simply *have* 90 days.
 
-### Follow-up: make reindex non-self-destructive (caused the 2026-06-05 outage)
+A backfill buys exactly one thing: **depth *now* instead of *later*.** That is rarely
+worth it — and reaching for it is precisely what **caused the 2026-06-05 outage**
+(destructive wipe-and-reindex blanked the live tip for ~2 days). Default action:
+**do nothing; let it accumulate.** Stop running destructive reindexes.
 
-The current reindex workflow is **fragile and took camp down for ~2 days**: each
-run `ampctl dataset deploy`s a *new* version tag (`@4.0.0`, `@4.0.1`, …) and wipes
-`/var/lib/ampd/data`, but the API is pinned to a fixed `AMP_DATASET` tag. If the
-env isn't repointed in lockstep, the API keeps querying the wiped version — and the
-failure is *silent on `/v1/status`* (aggregates read footer stats, no file open)
-while every row fetch 500s (`parquet ... not found`). Fix one of:
-1. **Reuse a stable tag** (re-materialize in place) so `AMP_DATASET` never changes; or
-2. **Auto-update the env** from the deploy script (write the new tag to Vercel + `.env`); or
-3. **Backfill into a side range without wiping the live window**, then cut over — so
-   the tip never goes stale and there's no row-fetch outage at all (the real win).
-Also: wiping data leaves orphaned catalog rows for old versions (needs
-`sudo -u postgres psql` cleanup). This is a prerequisite to *ever* safely expanding
-history again. See `~/amping/deploy/restore-service.sh` (now warns about the repoint).
+**The only justification to backfill is a deadline** where you need real historical
+depth live *before* a date the natural fill won't reach. The one real candidate is the
+**Sim sunset (Aug 1)** — waiting from June only yields ~2 shallow months by then, so
+*if* camp wants to court Sim-migrating users with real history at that moment, a
+one-time backfill before August is justified. Otherwise, skip it.
+
+### If you ever DO backfill: zero-downtime only
+
+Never wipe the live window again. Use the side-range-backfill + atomic-cutover flow
+(`~/amping/deploy/reindex-zerodt.sh` → `cutover.sh` → `gc-version.sh`): deploy a new
+version that backfills *beside* the live one, repoint `AMP_DATASET` only once it's
+caught up to head, then GC the old version. Notes baked into the scripts:
+- `rpc_batch_size = 10` in the provider config (50 AND 100 both trip Arbitrum
+  `-32003 response too large` on full blocks+receipts); throughput ceiling ~80 blk/s.
+- The API pins a specific `AMP_DATASET` version tag — the cutover script repoints it
+  (Vercel env + `.env.local` + redeploy) so the API never queries a dead version.
+  (The silent-outage trap: aggregates read footer stats so `/v1/status` looks fine
+  while every row fetch 500s with `parquet ... not found`.)
+- Next throughput lever, if a backfill ever needs to be faster, is a 2nd RPC provider
+  (round-robin), not more disk.
 
 ## Tier 1 — days, engine-agnostic, trust/adoption
 
@@ -119,6 +125,8 @@ behind the columnar store. Gate on "can I depend on this."
 
 ## If it were me, in order
 
-**history window → immutable caching → status page → SDKs.** ~a week of work,
-touches neither the engine nor the license argument, and it's the difference
-between "neat free toy" and "thing I'd actually build on."
+**immutable caching → status page → SDKs.** ~a week of work, touches neither the
+engine nor the license argument, and it's the difference between "neat free toy"
+and "thing I'd actually build on." History is no longer on this list — it deepens
+itself as ampd tip-follows, so the move is *patience*, not a backfill (the only
+exception being a deadline like the Sim sunset; see the history section above).

@@ -168,7 +168,7 @@ This repository is the Vercel-hosted public-facing gateway only. The ampd node, 
 
 ### Data freshness
 
-camp follows the Arbitrum One chain tip with single-digit-second lag once caught up. **History depth is in flux** — the live window is always exact on every `/v1/status` response (`dataset`, `history_seconds`, `earliest_indexed_at`, `earliest_indexed_block`), so trust that over any fixed number quoted here. During a backfill the earliest block fills in and the tip climbs to head over time. Deepening the window to several months is on the roadmap, gated on making the reindex workflow non-destructive (see [`docs/ROADMAP-2026.md`](docs/ROADMAP-2026.md)) so expanding history can't blank the live tip.
+camp follows the Arbitrum One chain tip with single-digit-second lag once caught up, and **history grows continuously from there** — ampd keeps every block it indexes (no rolling-window retention), so the available history deepens by roughly a day per day of uptime. The live depth is always exact on every `/v1/status` response (`dataset`, `history_seconds`, `earliest_indexed_at`, `earliest_indexed_block`), so trust that over any fixed number quoted here. We deliberately let history accumulate rather than bulk-backfilling (see [`docs/ROADMAP-2026.md`](docs/ROADMAP-2026.md)); a one-time backfill is only on the table if real historical depth is ever needed before a hard deadline.
 
 ---
 
