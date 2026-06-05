@@ -30,9 +30,25 @@ so backfill ETA is what bounds the window: 6 months (~63 M blocks) ≈ 5–6 day
 3 months (~31 M) ≈ 3 days. **Chose 3 months** to keep the stale-tip window
 (backfill fills oldest→newest) to ~3 days. Backfill = wipe + re-index from
 `tip − 90d` via `~/amping/deploy/reindex-3months.sh`. Critical: needs
-`rpc_batch_size` set in the provider config (50, not 100 — Arbitrum trips
-`-32003 response too large`) or it crawls at ~12 blocks/sec. Next throughput
-lever is a 2nd RPC provider (round-robin), not more disk.
+`rpc_batch_size = 10` in the provider config (50 AND 100 both trip Arbitrum
+`-32003 response too large` on full blocks+receipts) or it crawls at ~12
+blocks/sec. Next throughput lever is a 2nd RPC provider (round-robin), not more disk.
+
+### Follow-up: make reindex non-self-destructive (caused the 2026-06-05 outage)
+
+The current reindex workflow is **fragile and took camp down for ~2 days**: each
+run `ampctl dataset deploy`s a *new* version tag (`@4.0.0`, `@4.0.1`, …) and wipes
+`/var/lib/ampd/data`, but the API is pinned to a fixed `AMP_DATASET` tag. If the
+env isn't repointed in lockstep, the API keeps querying the wiped version — and the
+failure is *silent on `/v1/status`* (aggregates read footer stats, no file open)
+while every row fetch 500s (`parquet ... not found`). Fix one of:
+1. **Reuse a stable tag** (re-materialize in place) so `AMP_DATASET` never changes; or
+2. **Auto-update the env** from the deploy script (write the new tag to Vercel + `.env`); or
+3. **Backfill into a side range without wiping the live window**, then cut over — so
+   the tip never goes stale and there's no row-fetch outage at all (the real win).
+Also: wiping data leaves orphaned catalog rows for old versions (needs
+`sudo -u postgres psql` cleanup). This is a prerequisite to *ever* safely expanding
+history again. See `~/amping/deploy/restore-service.sh` (now warns about the repoint).
 
 ## Tier 1 — days, engine-agnostic, trust/adoption
 
