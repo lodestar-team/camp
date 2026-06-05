@@ -14,7 +14,20 @@ export async function GET(req: Request, ctx: RouteContext) {
   try {
     await checkRateLimit(req);
     const { n: raw } = await ctx.params;
-    const n = blockNumParam.parse(raw);
+    let n: number;
+    const isLatest = raw.toLowerCase() === "latest";
+    if (isLatest) {
+      const tipRows = await ampQuery(
+        `SELECT MAX(block_num) AS tip FROM ${table("blocks")}`,
+      );
+      const tip = Number(tipRows[0]?.tip ?? NaN);
+      if (!Number.isFinite(tip) || tip <= 0) {
+        throw new ApiError("upstream_unavailable", 503, "no blocks indexed yet");
+      }
+      n = tip;
+    } else {
+      n = blockNumParam.parse(raw);
+    }
 
     const blocksSql = `
       SELECT
@@ -107,7 +120,9 @@ export async function GET(req: Request, ctx: RouteContext) {
 
     return NextResponse.json(
       { block, transactions, logs },
-      { headers: cacheHeadersFor({ toBlock: n, tipBlock: n + 200 }) },
+      // For ?latest, n IS the tip — force the short (near-tip) TTL so the moving
+      // head isn't cached as if finalized.
+      { headers: cacheHeadersFor({ toBlock: n, tipBlock: isLatest ? n : n + 200 }) },
     );
   } catch (e) {
     if (e instanceof Error && e.name === "ZodError") {
