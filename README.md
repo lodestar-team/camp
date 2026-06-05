@@ -168,7 +168,7 @@ This repository is the Vercel-hosted public-facing gateway only. The ampd node, 
 
 ### Data freshness
 
-camp indexes roughly the last **3 months** of Arbitrum One (backfilled from ~block 438.9 M, early March 2026) and follows the chain tip with single-digit-second lag once caught up. The exact live depth is always on every `/v1/status` response — `history_seconds`, `earliest_indexed_at`, `earliest_indexed_block`. During a backfill (or after the v0.0.35 → v0.0.36 store cutover, since the metadata schema isn't downgrade-safe) the earliest block fills in and the tip climbs to head over a few days, so trust `/v1/status` over any fixed number here.
+camp follows the Arbitrum One chain tip with single-digit-second lag once caught up. **History depth is in flux** — the live window is always exact on every `/v1/status` response (`dataset`, `history_seconds`, `earliest_indexed_at`, `earliest_indexed_block`), so trust that over any fixed number quoted here. During a backfill the earliest block fills in and the tip climbs to head over time. Deepening the window to several months is on the roadmap, gated on making the reindex workflow non-destructive (see [`docs/ROADMAP-2026.md`](docs/ROADMAP-2026.md)) so expanding history can't blank the live tip.
 
 ---
 
