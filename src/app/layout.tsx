@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "camp — Arbitrum's data engine",
   description:
-    "Free, tip-fresh REST gateway over Arbitrum One blocks/transactions/logs. Runs a self-built Amp fork (lodestar-team/amp), no SLA, no signup, no closed-source black box.",
+    "Free, tip-fresh REST gateway over Arbitrum One blocks/transactions/logs. Runs camp-node, a self-built engine (lodestar-team/camp-node), no SLA, no signup, no closed-source black box.",
   openGraph: {
     title: "camp — Arbitrum's data engine",
     description:

@@ -123,7 +123,7 @@ nginx :1604                         (shared-secret + Redis rate limit)
   ├─ /srh/     → Redis HTTP shim    (rate-limit state)
   └─ /healthz
   ↓
-ampd (self-built lodestar-team/amp fork, v0.1.0; Arbitrum One indexer; Flight on :1702; parquet on local SSD)
+ampd (camp-node — self-built engine, v0.1.0; Arbitrum One indexer; Flight on :1702; parquet on local SSD)
 ```
 
 Three things deserve explanation.
@@ -132,7 +132,7 @@ Three things deserve explanation.
 
 ampd is what does the real work: Rust, designed for SQL-against-EVM. It pulls blocks/receipts/logs from an RPC, writes them to Parquet on disk, exposes everything through Apache Arrow FlightSQL (and a JSON Lines HTTP server), and ships with the EVM-specific UDFs that make decoded queries possible. Compactor merges small parquets into bigger ones in the background; once that catches up, narrow-range queries return in well under a second.
 
-camp builds `ampd` **from source from its own fork, [`lodestar-team/amp`](https://github.com/lodestar-team/amp)** (BUSL-1.1) — not the closed-source binary from ampup.sh. We point it at a single dataset, `_/arbitrum_one`, and let it tip-follow Arbitrum One. The usable window grows by ~24h every calendar day; we let history accumulate rather than bulk-backfilling.
+camp builds `ampd` **from source — [`lodestar-team/camp-node`](https://github.com/lodestar-team/camp-node)** (built on Edge & Node's Amp, BUSL-1.1) — not the closed-source binary from ampup.sh. We point it at a single dataset, `_/arbitrum_one`, and let it tip-follow Arbitrum One. The usable window grows by ~24h every calendar day; we let history accumulate rather than bulk-backfilling.
 
 ### The Flight shim
 

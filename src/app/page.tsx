@@ -548,8 +548,8 @@ let r: serde_json::Value = reqwest::Client::new()
             <p className="section-lede">
               Requests land at the edge for TLS and DDoS, traverse a Cloudflare
               tunnel to the origin, hit nginx for auth and rate limiting, then
-              query our self-built Amp engine — a fork we compile from source
-              (lodestar-team/amp) — indexing Arbitrum One. Compacted parquet on
+              query camp-node, our self-built engine we compile from source
+              (lodestar-team/camp-node) — indexing Arbitrum One. Compacted parquet on
               local SSD keeps narrow queries sub-second.
             </p>
 
@@ -567,7 +567,7 @@ let r: serde_json::Value = reqwest::Client::new()
 `}<span className="strong">nginx</span>{`       ─ shared-secret + per-IP rate limit (Redis)
    │
    ▼
-`}<span className="accent">ampd</span>{`        ─ self-built lodestar-team/amp fork · parquet on local SSD · compactor active
+`}<span className="accent">ampd</span>{`        ─ camp-node (self-built engine) · parquet on local SSD · compactor active
    │
    ▼
 arbitrum one rpc`}
@@ -668,15 +668,15 @@ arbitrum one rpc`}
               </p>
               <p>
                 If you&apos;re building something that depends on chain data
-                being available at a specific latency, run your own. camp runs a
-                self-built fork of Amp — no closed-source black box. The engine
+                being available at a specific latency, run your own. camp runs
+                camp-node, our self-built engine — no closed-source black box. The engine
                 is{" "}
                 <a
-                  href="https://github.com/lodestar-team/amp"
+                  href="https://github.com/lodestar-team/camp-node"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  lodestar-team/amp
+                  lodestar-team/camp-node
                 </a>{" "}
                 and the gateway is{" "}
                 <a
@@ -711,11 +711,11 @@ arbitrum one rpc`}
               gateway
             </a>{" "}
             ·{" "}
-            <a href="https://github.com/lodestar-team/amp" target="_blank" rel="noreferrer">
+            <a href="https://github.com/lodestar-team/camp-node" target="_blank" rel="noreferrer">
               engine
             </a>{" "}
             ·{" "}
-            self-built Amp fork
+            self-built engine
           </span>
         </footer>
       </main>

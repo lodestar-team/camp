@@ -4,10 +4,10 @@ This is the exact setup `camp` runs in production: **one `ampd` binary, one box,
 a local Postgres catalog** — no distributed controller/worker split. It's enough
 to index a full chain at tip and serve queries with single-digit-second freshness.
 
-camp builds `ampd` from its own fork, **[lodestar-team/amp](https://github.com/lodestar-team/amp)**
-(BUSL-1.1) — not the closed-source ampup.sh binary. Build it first (see the fork's
-README: `cargo build --release -p ampd -p ampctl`), then follow this guide. Tested
-on **lodestar-team/amp v0.1.0** (`a1937bf`). Note the compactor defaults **off** in
+camp builds `ampd` from its own engine, **[lodestar-team/camp-node](https://github.com/lodestar-team/camp-node)**
+(built on Edge & Node's Amp, BUSL-1.1) — not the closed-source ampup.sh binary. Build it first
+(see camp-node's README: `cargo build --release -p ampd -p ampctl`), then follow this guide. Tested
+on **camp-node v0.1.0** (`a1937bf`). Note the compactor defaults **off** in
 this build — you must enable it explicitly (see [Compaction](#compaction)).
 
 ---
@@ -90,7 +90,7 @@ Group=ampd
 Environment=AMP_CONFIG=/etc/ampd/ampd.toml
 Environment=AMP_DIR=/var/lib/ampd
 Environment=HOME=/var/lib/ampd
-# The fork has no `solo` subcommand — `dev` is the all-in-one (Flight + JSON Lines
+# camp-node has no `solo` subcommand — `dev` is the all-in-one (Flight + JSON Lines
 # + Admin API + an in-process worker), the single-box equivalent.
 ExecStart=/usr/local/bin/ampd --config /etc/ampd/ampd.toml dev
 Restart=on-failure
@@ -145,7 +145,7 @@ compaction group completed successfully table=logs
 
 (log target: `amp_job_core::materialize::compaction::compactor`)
 
-**If that grep returns nothing**, the compactor isn't enabled. In this fork it's
+**If that grep returns nothing**, the compactor isn't enabled. In this build it's
 **off by default** — make sure your `ampd.toml` has `[writer.compactor] active = true`
 (and `[writer.collector] active = true`) and restart. That config is **required**
 here; the file count climbing without bound + no `Compaction Success` lines is the

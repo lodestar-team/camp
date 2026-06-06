@@ -161,14 +161,14 @@ nginx :1604                         (shared-secret + Redis rate limit)
   ├─ /srh/     → Redis HTTP shim    (rate-limit state)
   └─ /healthz
   ↓
-ampd  (self-built from the lodestar-team/amp fork; Arbitrum One indexer; Flight on :16021; parquet on local SSD)
+ampd  (camp-node — self-built engine; Arbitrum One indexer; Flight on :1702; parquet on local SSD)
 ```
 
 This repository is the Vercel-hosted public-facing gateway only. The ampd node, Flight shim, Redis shim, nginx, and the Cloudflare tunnel live in a separate ops repo.
 
 ### The engine
 
-camp runs **Amp from source** — a self-built fork at [`lodestar-team/amp`](https://github.com/lodestar-team/amp) (BUSL-1.1; a fork of Edge & Node's Amp), **not** the official closed-source binary distributed via [ampup.sh](https://ampup.sh/docs). Building the engine ourselves keeps it auditable, pinnable, and patchable, and the binary self-reports its exact version (`ampd --version` → `v0.1.0`; see the fork's [v0.1.0 release](https://github.com/lodestar-team/amp/releases/tag/v0.1.0)). camp's free, no-key service is permitted under Amp's BUSL Additional Use Grant (free → non-competitive).
+camp runs **[camp-node](https://github.com/lodestar-team/camp-node)** — our source-built indexing engine, built on Edge & Node's Amp (BUSL-1.1) — **not** the official closed-source binary distributed via [ampup.sh](https://ampup.sh/docs). Building the engine ourselves keeps it auditable, pinnable, and patchable, and the binary self-reports its exact version (`ampd --version` → `v0.1.0`; see the [v0.1.0 release](https://github.com/lodestar-team/camp-node/releases/tag/v0.1.0)). camp's free, no-key service is permitted under Amp's BUSL Additional Use Grant (free → non-competitive).
 
 ### Data freshness
 
@@ -189,8 +189,8 @@ camp is one of many possible deployments of the same pattern. If you want to ser
 
 **The pieces, in order from the chain outward:**
 
-1. **ampd** — the indexer. camp builds it from source from the [`lodestar-team/amp`](https://github.com/lodestar-team/amp) fork (`cargo build --release -p ampd -p ampctl`), not the closed-source [ampup](https://ampup.sh/docs) distribution; see the fork's README for build prerequisites. Register the `arbitrum-one` raw dataset, point at your RPC, let it backfill.
-2. **A Flight ⇆ JSONL shim** (~70 lines of Node.js) — optional. The `lodestar-team/amp` fork serves JSONL natively (`ampd dev --jsonl-server`), so the gateway can point straight at it. The shim only matters for ampd builds whose JSONL server is disabled, wrapping Arrow Flight in a JSONL response.
+1. **ampd** — the indexer. camp builds it from source from [`lodestar-team/camp-node`](https://github.com/lodestar-team/camp-node) (`cargo build --release -p ampd -p ampctl`), not the closed-source [ampup](https://ampup.sh/docs) distribution; see camp-node's README for build prerequisites. Register the `arbitrum-one` raw dataset, point at your RPC, let it backfill.
+2. **A Flight ⇆ JSONL shim** (~70 lines of Node.js) — optional. camp-node serves JSONL natively (`ampd dev --jsonl-server`), so the gateway can point straight at it. The shim only matters for ampd builds whose JSONL server is disabled, wrapping Arrow Flight in a JSONL response.
 3. **nginx** in front of the shim — terminates a shared-secret header and runs IP rate limits via Redis. The gateway expects this layer; see [`.env.example`](.env.example).
 4. **This gateway** (the repo you're reading) — deploy to Vercel, or `npm run start` it anywhere with Node.js 22+. Point `AMP_ORIGIN` at nginx.
 5. **Cloudflare Tunnel** (optional) — keeps the origin private and gives you DDoS / CDN for free.
@@ -287,7 +287,7 @@ Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 - **Phase D** ✅ OpenAPI 3.1 spec + `/docs` reference (Scalar)
 - **Phase E** ✅ Flight-native origin — ampd behind a JSONL ⇆ Flight shim; working compactor
 - **Phase F** ✅ Anonymous bearer tokens — opt-in for 10× per-IP limits (300/min · 5,000/hour) with no signup
-- **Phase G** ✅ Self-built engine — cut over from the closed-source ampup binary to our own source-built fork ([lodestar-team/amp](https://github.com/lodestar-team/amp) `v0.1.0`); no closed-source black box
+- **Phase G** ✅ Self-built engine — cut over from the closed-source ampup binary to our own source-built engine ([camp-node](https://github.com/lodestar-team/camp-node) `v0.1.0`); no closed-source black box
 - **Next** GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
 
 ---
@@ -306,4 +306,4 @@ vercel --prod
 
 ## License
 
-MIT. The underlying Amp engine is BUSL-1.1 — camp runs a self-built fork ([`lodestar-team/amp`](https://github.com/lodestar-team/amp)), not the closed-source ampup distribution; camp's free, non-competitive use is permitted under Amp's BUSL Additional Use Grant.
+MIT. The indexing engine, [`camp-node`](https://github.com/lodestar-team/camp-node), is built on Edge & Node's Amp and is BUSL-1.1 — camp builds it from source, not the closed-source ampup distribution; camp's free, non-competitive use is permitted under Amp's BUSL Additional Use Grant.
