@@ -123,20 +123,20 @@ nginx :1604                         (shared-secret + Redis rate limit)
   ├─ /srh/     → Redis HTTP shim    (rate-limit state)
   └─ /healthz
   ↓
-ampd v0.0.36  (Arbitrum One indexer; Flight on :16021; parquet on local SSD)
+ampd (self-built lodestar-team/amp fork, v0.1.0; Arbitrum One indexer; Flight on :1702; parquet on local SSD)
 ```
 
 Three things deserve explanation.
 
 ### ampd
 
-ampd is what does the real work. Open-source, Rust, designed for SQL-against-EVM. It pulls blocks/receipts/logs from an RPC, writes them to Parquet on disk, exposes everything through Apache Arrow FlightSQL, and ships with the EVM-specific UDFs that make decoded queries possible. Compactor merges small parquets into bigger ones in the background; once that catches up, narrow-range queries return in well under a second.
+ampd is what does the real work: Rust, designed for SQL-against-EVM. It pulls blocks/receipts/logs from an RPC, writes them to Parquet on disk, exposes everything through Apache Arrow FlightSQL (and a JSON Lines HTTP server), and ships with the EVM-specific UDFs that make decoded queries possible. Compactor merges small parquets into bigger ones in the background; once that catches up, narrow-range queries return in well under a second.
 
-We point ampd at a single dataset — `_/arbitrum_one@2.0.0` — and let it backfill from the block we cared about. Today that's `467,200,673` (May 27). The usable window grows by ~24h every calendar day; we're aiming for a rolling ~30d view long-term.
+camp builds `ampd` **from source from its own fork, [`lodestar-team/amp`](https://github.com/lodestar-team/amp)** (BUSL-1.1) — not the closed-source binary from ampup.sh. We point it at a single dataset, `_/arbitrum_one`, and let it tip-follow Arbitrum One. The usable window grows by ~24h every calendar day; we let history accumulate rather than bulk-backfilling.
 
 ### The Flight shim
 
-ampd v0.0.36 only speaks Arrow Flight. The Next.js gateway speaks JSON. So we wrote a thin Flight ⇆ JSONL bridge (`flight-shim`, also in the [amping](https://github.com/cargopete/amping) ops repo) that translates between the two without re-implementing the SQL layer. nginx terminates the JSONL side and proxies to the Flight side over localhost.
+The fork's `ampd` serves both Arrow Flight and JSON Lines natively, but camp currently routes through a thin Flight ⇆ JSONL bridge (`flight-shim`, in the amping ops repo) — nginx terminates the JSONL side and proxies to the Flight side over localhost. (The shim is now optional: the gateway could point straight at the fork's native JSONL server.)
 
 The shim handles all the awkward type conversions — Arrow Decimal128 with overflow, struct-of-Utf8 from `evm_decode_log`, Binary columns the JSON encoder doesn't know what to do with. The gateway gets back clean JSON; the shim ate the Arrow.
 

@@ -548,8 +548,9 @@ let r: serde_json::Value = reqwest::Client::new()
             <p className="section-lede">
               Requests land at the edge for TLS and DDoS, traverse a Cloudflare
               tunnel to the origin, hit nginx for auth and rate limiting, then
-              query an Amp node indexing Arbitrum One. Compacted parquet on local SSD keeps
-              narrow queries sub-second.
+              query our self-built Amp engine — a fork we compile from source
+              (lodestar-team/amp) — indexing Arbitrum One. Compacted parquet on
+              local SSD keeps narrow queries sub-second.
             </p>
 
             <div className="arch">
@@ -566,7 +567,7 @@ let r: serde_json::Value = reqwest::Client::new()
 `}<span className="strong">nginx</span>{`       ─ shared-secret + per-IP rate limit (Redis)
    │
    ▼
-`}<span className="accent">ampd</span>{`        ─ parquet on local SSD, compactor active
+`}<span className="accent">ampd</span>{`        ─ self-built lodestar-team/amp fork · parquet on local SSD · compactor active
    │
    ▼
 arbitrum one rpc`}
@@ -667,10 +668,26 @@ arbitrum one rpc`}
               </p>
               <p>
                 If you&apos;re building something that depends on chain data
-                being available at a specific latency, run your own Amp node.
-                The dataset manifest, indexer config, and gateway code are all
-                open — clone, point at your own RPC, you&apos;re done in an
-                afternoon.
+                being available at a specific latency, run your own. camp runs a
+                self-built fork of Amp — no closed-source black box. The engine
+                is{" "}
+                <a
+                  href="https://github.com/lodestar-team/amp"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  lodestar-team/amp
+                </a>{" "}
+                and the gateway is{" "}
+                <a
+                  href="https://github.com/lodestar-team/camp"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  lodestar-team/camp
+                </a>
+                . Both have setup guides in their READMEs: build the engine,
+                point it at your own Arbitrum RPC, run the gateway.
               </p>
               <p>
                 Bug reports and feature requests:{" "}
@@ -691,10 +708,14 @@ arbitrum one rpc`}
           <span>camp · community Amp for Arbitrum One</span>
           <span>
             <a href="https://github.com/lodestar-team/camp" target="_blank" rel="noreferrer">
-              source
+              gateway
             </a>{" "}
             ·{" "}
-            powered by Amp
+            <a href="https://github.com/lodestar-team/amp" target="_blank" rel="noreferrer">
+              engine
+            </a>{" "}
+            ·{" "}
+            self-built Amp fork
           </span>
         </footer>
       </main>

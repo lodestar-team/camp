@@ -4,9 +4,11 @@ This is the exact setup `camp` runs in production: **one `ampd` binary, one box,
 a local Postgres catalog** — no distributed controller/worker split. It's enough
 to index a full chain at tip and serve queries with single-digit-second freshness.
 
-Tested on **ampd v0.0.36**. If you're on an older build, read
-[Compaction](#compaction) first — the most common "why are my queries slow"
-problem is a compactor that silently never ran on pre-0.0.36.
+camp builds `ampd` from its own fork, **[lodestar-team/amp](https://github.com/lodestar-team/amp)**
+(BUSL-1.1) — not the closed-source ampup.sh binary. Build it first (see the fork's
+README: `cargo build --release -p ampd -p ampctl`), then follow this guide. Tested
+on **lodestar-team/amp v0.1.0** (`a1937bf`). Note the compactor defaults **off** in
+this build — you must enable it explicitly (see [Compaction](#compaction)).
 
 ---
 
@@ -56,15 +58,22 @@ url = "postgres://ampd:${AMPD_PG_PASSWORD}@localhost/ampd"
 
 [writer]
 compression = "zstd(1)"
-```
 
-Note what's **not** here: no `[compactor]` / `[writer.compactor]` / `[collector]`
-section. On v0.0.36 the compactor is **default-on in solo mode**. A top-level
-`[compactor]` key is not real and is silently ignored.
+# The compactor + collector default to OFF in this build — enable both, or the
+# parquet file count grows without bound and cold queries get slow. Other knobs
+# (concurrency, intervals, eager limits) fall back to sane build defaults.
+[writer.compactor]
+active = true
+
+[writer.collector]
+active = true
+```
 
 `poll_interval_secs = 3.0` is the materialize loop cadence — ingestion *and*
 compaction piggyback on it, so on a healthy node you'll see compaction log lines
-every few seconds.
+every few seconds. The `[writer.compactor]`/`[writer.collector]` blocks above are
+**required** in this build (unlike the closed v0.0.36 binary, which defaulted the
+compactor on in solo mode).
 
 ---
 
@@ -81,7 +90,9 @@ Group=ampd
 Environment=AMP_CONFIG=/etc/ampd/ampd.toml
 Environment=AMP_DIR=/var/lib/ampd
 Environment=HOME=/var/lib/ampd
-ExecStart=/usr/local/bin/ampd solo --flight-server --admin-server
+# The fork has no `solo` subcommand — `dev` is the all-in-one (Flight + JSON Lines
+# + Admin API + an in-process worker), the single-box equivalent.
+ExecStart=/usr/local/bin/ampd --config /etc/ampd/ampd.toml dev
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=65536
@@ -112,9 +123,10 @@ background. If compaction isn't running, query latency is dominated by
 **file-open overhead**, not scan time — e.g. a `logs` query going cold at ~5s
 across tens of thousands of ~2 MB files.
 
-**It runs in solo mode.** You do not need a distributed controller + `ampd worker`
-split to get compaction. camp runs pure solo and the compactor merges
-continuously.
+**It runs in single-box `dev` mode** once enabled. You do not need a distributed
+controller + `ampd worker` split to get compaction — `ampd dev` runs an in-process
+worker. But you **must** turn the compactor on in config (`[writer.compactor] active = true`
++ `[writer.collector] active = true`); it is **off by default** in this build.
 
 Confirm it's alive:
 
@@ -133,11 +145,11 @@ compaction group completed successfully table=logs
 
 (log target: `amp_job_core::materialize::compaction::compactor`)
 
-**If that grep returns nothing**, the compactor isn't running. On pre-v0.0.36
-builds it was present but not wired into the solo materialize loop — config
-toggles (`[compactor] active = true`, `AMP_CONFIG_COMPACTOR__ACTIVE=true`) were
-silently ignored. The fix is to **upgrade to v0.0.36** and restart; no compactor
-config is required.
+**If that grep returns nothing**, the compactor isn't enabled. In this fork it's
+**off by default** — make sure your `ampd.toml` has `[writer.compactor] active = true`
+(and `[writer.collector] active = true`) and restart. That config is **required**
+here; the file count climbing without bound + no `Compaction Success` lines is the
+symptom of leaving it off.
 
 For reference, a healthy store shape (camp, Arbitrum One, ~7.8-day rolling
 window, 2.7M blocks): ~4,300 parquet files, median ~1.9 MB, merged groups up to

@@ -285,8 +285,9 @@ Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 - **Phase B** ✅ `/explore` dashboards — 10 server-rendered views, one per endpoint family
 - **Phase C** ✅ Raw `POST /v1/sql`, `/v1/datasets` catalog, `/v1/stream/blocks` SSE
 - **Phase D** ✅ OpenAPI 3.1 spec + `/docs` reference (Scalar)
-- **Phase E** ✅ Flight-native origin — ampd v0.0.36 behind a JSONL ⇆ Flight shim; working compactor
+- **Phase E** ✅ Flight-native origin — ampd behind a JSONL ⇆ Flight shim; working compactor
 - **Phase F** ✅ Anonymous bearer tokens — opt-in for 10× per-IP limits (300/min · 5,000/hour) with no signup
+- **Phase G** ✅ Self-built engine — cut over from the closed-source ampup binary to our own source-built fork ([lodestar-team/amp](https://github.com/lodestar-team/amp) `v0.1.0`); no closed-source black box
 - **Next** GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
 
 ---
