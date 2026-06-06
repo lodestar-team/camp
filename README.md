@@ -161,10 +161,14 @@ nginx :1604                         (shared-secret + Redis rate limit)
   ├─ /srh/     → Redis HTTP shim    (rate-limit state)
   └─ /healthz
   ↓
-ampd v0.0.36  (Arbitrum One indexer; Flight on :16021; parquet on local SSD)
+ampd  (self-built from the lodestar-team/amp fork; Arbitrum One indexer; Flight on :16021; parquet on local SSD)
 ```
 
 This repository is the Vercel-hosted public-facing gateway only. The ampd node, Flight shim, Redis shim, nginx, and the Cloudflare tunnel live in a separate ops repo.
+
+### The engine
+
+camp runs **Amp from source** — a self-built fork at [`lodestar-team/amp`](https://github.com/lodestar-team/amp) (BUSL-1.1; a fork of Edge & Node's Amp), **not** the official closed-source binary distributed via [ampup.sh](https://ampup.sh/docs). Building the engine ourselves keeps it auditable, pinnable, and patchable, and the binary self-reports its exact version (`ampd --version` → `v0.1.0`; see the fork's [v0.1.0 release](https://github.com/lodestar-team/amp/releases/tag/v0.1.0)). camp's free, no-key service is permitted under Amp's BUSL Additional Use Grant (free → non-competitive).
 
 ### Data freshness
 
@@ -185,8 +189,8 @@ camp is one of many possible deployments of the same pattern. If you want to ser
 
 **The pieces, in order from the chain outward:**
 
-1. **ampd** — the indexer. From [GitHub Container Registry](https://ghcr.io); see Lodestar's [deep dive](https://www.lodestar-dashboard.com/blog/camp-deep-dive) for current image and config. Register the `arbitrum-one` raw dataset, point at your RPC, let it backfill.
-2. **A Flight ⇆ JSONL shim** (~70 lines of Node.js) if you want to use this gateway with ampd v0.0.36+ — the JSONL endpoint was dropped in that release. The shim wraps Arrow Flight in a JSONL response. (Older ampd versions speak JSONL natively and skip this layer.)
+1. **ampd** — the indexer. camp builds it from source from the [`lodestar-team/amp`](https://github.com/lodestar-team/amp) fork (`cargo build --release -p ampd -p ampctl`), not the closed-source [ampup](https://ampup.sh/docs) distribution; see the fork's README for build prerequisites. Register the `arbitrum-one` raw dataset, point at your RPC, let it backfill.
+2. **A Flight ⇆ JSONL shim** (~70 lines of Node.js) — optional. The `lodestar-team/amp` fork serves JSONL natively (`ampd dev --jsonl-server`), so the gateway can point straight at it. The shim only matters for ampd builds whose JSONL server is disabled, wrapping Arrow Flight in a JSONL response.
 3. **nginx** in front of the shim — terminates a shared-secret header and runs IP rate limits via Redis. The gateway expects this layer; see [`.env.example`](.env.example).
 4. **This gateway** (the repo you're reading) — deploy to Vercel, or `npm run start` it anywhere with Node.js 22+. Point `AMP_ORIGIN` at nginx.
 5. **Cloudflare Tunnel** (optional) — keeps the origin private and gives you DDoS / CDN for free.
@@ -301,4 +305,4 @@ vercel --prod
 
 ## License
 
-MIT. The underlying Amp engine is BUSL-1.1; this gateway consumes its REST output only.
+MIT. The underlying Amp engine is BUSL-1.1 — camp runs a self-built fork ([`lodestar-team/amp`](https://github.com/lodestar-team/amp)), not the closed-source ampup distribution; camp's free, non-competitive use is permitted under Amp's BUSL Additional Use Grant.
