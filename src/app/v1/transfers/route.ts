@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { ampQuery, table, hexLiteral, hexCol } from "@/lib/amp";
+import { ampQuery, table, hexLiteral, hexCol, resolveRange } from "@/lib/amp";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { handle, ApiError } from "@/lib/errors";
-import { addressParam, rangeParams, limitParam } from "@/lib/validate";
+import { addressParam, limitParam } from "@/lib/validate";
 import { cacheHeadersFor } from "@/lib/cache";
 
 export const runtime = "nodejs";
@@ -18,10 +18,8 @@ export async function GET(req: Request) {
     await checkRateLimit(req);
     const url = new URL(req.url);
     const token = addressParam.parse(url.searchParams.get("token"));
-    const range = rangeParams.parse({
-      from_block: url.searchParams.get("from_block"),
-      to_block: url.searchParams.get("to_block"),
-    });
+    // Default to a recent window (~10k blocks up to the tip) when no range given.
+    const range = await resolveRange(url.searchParams, 10_000);
     const limit = limitParam.parse(url.searchParams.get("limit") ?? undefined);
 
     // Decoded path: evm_decode_log returns a struct {from, to, value} of

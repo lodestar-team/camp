@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { ampQuery, table } from "@/lib/amp";
+import { ampQuery, table, resolveRange } from "@/lib/amp";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { handle, ApiError } from "@/lib/errors";
-import { rangeParams, bucketParam } from "@/lib/validate";
+import { bucketParam } from "@/lib/validate";
 import { cacheHeadersFor } from "@/lib/cache";
 
 export const runtime = "nodejs";
@@ -12,10 +12,8 @@ export async function GET(req: Request) {
   try {
     await checkRateLimit(req);
     const url = new URL(req.url);
-    const range = rangeParams.parse({
-      from_block: url.searchParams.get("from_block"),
-      to_block: url.searchParams.get("to_block"),
-    });
+    // Default to a recent window (~50k blocks up to the tip) when no range given.
+    const range = await resolveRange(url.searchParams, 50_000);
     const bucket = bucketParam.parse(url.searchParams.get("bucket") ?? undefined);
 
     const sql = `

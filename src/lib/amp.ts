@@ -1,5 +1,6 @@
 import { env } from "./env";
 import { ApiError } from "./errors";
+import { rangeParams } from "./validate";
 
 type Row = Record<string, unknown>;
 
@@ -77,4 +78,27 @@ export async function fetchTip(): Promise<number> {
     `SELECT MAX(block_num) AS tip FROM ${table("blocks")}`,
   );
   return Number(rows[0]?.tip ?? 0);
+}
+
+/**
+ * Resolve a block range from query params, defaulting any missing side to a
+ * recent window up to the indexed tip. So a bare call (no from_block/to_block)
+ * returns the most recent `defaultSpan` blocks instead of the empty 0–0 range.
+ * Fully-explicit ranges are validated exactly as before (rangeParams).
+ */
+export async function resolveRange(
+  sp: URLSearchParams,
+  defaultSpan: number,
+): Promise<{ from_block: number; to_block: number }> {
+  const fromRaw = sp.get("from_block");
+  const toRaw = sp.get("to_block");
+  if (fromRaw != null && toRaw != null) {
+    return rangeParams.parse({ from_block: fromRaw, to_block: toRaw });
+  }
+  const tip = await fetchTip();
+  const to_block = toRaw != null ? Number(toRaw) : tip;
+  const from_block =
+    fromRaw != null ? Number(fromRaw) : Math.max(0, to_block - defaultSpan);
+  // Re-validate (nonnegative, to >= from, span <= MAX_BLOCK_SPAN).
+  return rangeParams.parse({ from_block, to_block });
 }
