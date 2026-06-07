@@ -9,7 +9,7 @@ export const metadata = {
 
 export const revalidate = 30;
 
-const CALLS_DATASET = process.env.CALLS_DATASET ?? "_/eth_calls@2.0.0";
+const CALLS_DATASET = process.env.PINAX_DATASET ?? "_/eth@1.0.0";
 
 const CALL_TYPE: Record<number, string> = {
   0: "—",
@@ -34,7 +34,7 @@ export default async function CallsPage() {
         ${hexCol("address")} AS address,
         arrow_cast(value, 'Utf8') AS value
       FROM "${CALLS_DATASET}".calls
-      WHERE block_num BETWEEN 48000 AND 52000
+      WHERE block_num BETWEEN 2000000 AND 2002000
       ORDER BY block_num ASC, "index" ASC
       LIMIT 50
     `.trim(),

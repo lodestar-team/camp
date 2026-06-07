@@ -90,12 +90,14 @@ export default function Home() {
         <section className="block reveal" id="calls">
           <div className="container">
             <p className="section-eyebrow">new · full instrumentation</p>
-            <h2 className="section-title">Internal traces — the data RPC hides.</h2>
+            <h2 className="section-title">The data RPC hides.</h2>
             <p className="section-lede">
-              Beyond blocks, transactions, and logs, camp now serves{" "}
-              <strong>internal-transaction traces</strong> — contract-to-contract calls,
-              delegatecalls, creates, self-destructs — with caller, callee, value, depth, and
-              gas. A plain JSON-RPC indexer can&apos;t produce this:{" "}
+              Beyond blocks, transactions, and logs, camp serves the{" "}
+              <strong>full-instrumentation</strong> set a JSON-RPC indexer can&apos;t produce:{" "}
+              <strong>internal-tx traces</strong> (calls/delegatecalls/creates),{" "}
+              <strong>storage writes</strong> (every SSTORE), the{" "}
+              <strong>balance ledger</strong> (every delta, with a reason), plus code and nonce
+              changes.{" "}
               <a
                 className="inline-link"
                 href="https://github.com/lodestar-team/camp-node"
@@ -115,6 +117,9 @@ export default function Home() {
               <a className="btn btn-primary" href="/explore/calls">
                 Browse calls / traces
               </a>
+              <a className="btn" href="/explore/state">
+                Browse state changes
+              </a>
               <a className="btn" href="/v1/calls">
                 /v1/calls JSON
               </a>
@@ -123,8 +128,8 @@ export default function Home() {
               className="lede"
               style={{ marginTop: 12, fontSize: "0.9em", color: "var(--text-muted)" }}
             >
-              <code>curl https://engine.camp/v1/calls</code> · showcase slice: ETH mainnet
-              (Arbitrum full instrumentation lands as Pinax ships it).
+              <code>curl https://engine.camp/v1/balance-changes</code> · showcase slice: ETH
+              mainnet (Arbitrum full instrumentation lands as Pinax ships it).
             </p>
           </div>
         </section>

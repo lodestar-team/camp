@@ -21,6 +21,12 @@ const DASHBOARDS = [
       "Internal-transaction traces — full-instrumentation data RPC can't produce, sourced from Pinax Firehose→Parquet and materialised in-engine by camp-node.",
   },
   {
+    href: "/explore/state",
+    title: "state changes",
+    blurb:
+      "Storage writes (every SSTORE) and the balance ledger with a reason per delta — full-instrumentation state diffs via the Pinax source.",
+  },
+  {
     href: "/explore/uniswap-v3",
     title: "uniswap v3",
     blurb:

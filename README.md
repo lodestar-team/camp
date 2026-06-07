@@ -108,11 +108,18 @@ The **SQL playground** at [`/explore/sql`](https://engine.camp/explore/sql) lets
 | GET | `/v1/token/{a}/volume?bucket=…` | Token transfer volume per bucket |
 | GET | `/v1/whales/transfers?token=…&min_value=…` | Big-Transfer feed for any token |
 
-### Full instrumentation (traces)
+### Full instrumentation (Pinax source)
+
+Data a JSON-RPC indexer can't produce, materialised in-engine by camp-node's `pinax` source.
+Showcase slice: ETH mainnet (Arbitrum lands when Pinax ships it).
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/v1/calls?from_block=…&to_block=…` | Internal-transaction traces (caller, callee, value, depth, gas, call_type) — data RPC can't produce, via the `pinax` source. Showcase slice: ETH mainnet. |
+| GET | `/v1/calls?from_block=…&to_block=…` | Internal-transaction traces (caller, callee, value, depth, gas, call_type) |
+| GET | `/v1/storage-changes` | Every SSTORE — contract, slot key, old/new value |
+| GET | `/v1/balance-changes` | The balance ledger — every delta with a `reason` (GAS_BUY, TRANSFER, REWARD…) |
+| GET | `/v1/nonce-changes` | Account nonce increments |
+| GET | `/v1/code-changes` | Contract code/hash changes |
 
 ### Decoded protocols
 
@@ -142,6 +149,7 @@ OpenAPI 3.1 spec at [`/openapi.yaml`](https://engine.camp/openapi.yaml); browsab
 
 - [`/explore/sql`](https://engine.camp/explore/sql) — Dune-style SQL playground with canned examples
 - [`/explore/calls`](https://engine.camp/explore/calls) — internal-tx traces (full instrumentation) via the Pinax source
+- [`/explore/state`](https://engine.camp/explore/state) — storage writes + balance ledger (with reason) via the Pinax source
 - [`/explore/uniswap-v3`](https://engine.camp/explore/uniswap-v3) — decoded swap/mint/burn per pool
 - [`/explore/horizon`](https://engine.camp/explore/horizon) — Graph Horizon timeline with severity accents
 - [`/explore/whales`](https://engine.camp/explore/whales) — live big-Transfer ticker across the major tokens
@@ -295,7 +303,7 @@ Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 - **Phase E** ✅ Flight-native origin — ampd behind a JSONL ⇆ Flight shim; working compactor
 - **Phase F** ✅ Anonymous bearer tokens — opt-in for 10× per-IP limits (300/min · 5,000/hour) with no signup
 - **Phase G** ✅ Self-built engine — cut over from the closed-source ampup binary to our own source-built engine ([camp-node](https://github.com/lodestar-team/camp-node) `v0.1.0`); no closed-source black box
-- **Phase H** ✅ Full instrumentation — camp-node [`v0.2.0`](https://github.com/lodestar-team/camp-node/releases/tag/v0.2.0) `pinax` source ingests [Pinax](https://pinax.network) Firehose→Parquet, unlocking `calls` (internal-tx traces) and other tables RPC can't produce. **Live on engine.camp**: [`/v1/calls`](https://engine.camp/v1/calls) + [`/explore/calls`](https://engine.camp/explore/calls) (ETH-mainnet showcase slice; Arbitrum lands as Pinax ships it).
+- **Phase H** ✅ Full instrumentation — camp-node [`v0.4.0`](https://github.com/lodestar-team/camp-node/releases/tag/v0.4.0) `pinax` source ingests [Pinax](https://pinax.network) Firehose→Parquet (8 tables), unlocking the set RPC can't produce: internal-tx traces, storage writes, the balance ledger (with reason), code & nonce changes. **Live on engine.camp**: [`/v1/calls`](https://engine.camp/v1/calls), [`/v1/storage-changes`](https://engine.camp/v1/storage-changes), [`/v1/balance-changes`](https://engine.camp/v1/balance-changes) + [`/explore/state`](https://engine.camp/explore/state) (ETH-mainnet showcase slice; Arbitrum lands as Pinax ships it).
 - **Next** More Pinax tables (`storage_changes`, balances) + Arbitrum full instrumentation when Pinax ships it, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
 
 ---

@@ -12,9 +12,9 @@ export const maxDuration = 10;
 // (Firehose→Parquet) and materialised in-engine by camp-node's `pinax` source.
 // This is data a plain JSON-RPC indexer cannot produce. Showcase dataset is an
 // ETH-mainnet slice (Arbitrum full instrumentation pending upstream at Pinax).
-const CALLS_DATASET = process.env.CALLS_DATASET ?? "_/eth_calls@2.0.0";
-const DEFAULT_FROM = 48000;
-const DEFAULT_TO = 52000;
+const CALLS_DATASET = process.env.PINAX_DATASET ?? "_/eth@1.0.0";
+const DEFAULT_FROM = 2_000_000;
+const DEFAULT_TO = 2_002_000;
 const MAX_SPAN = 100_000;
 
 export async function GET(req: Request) {
