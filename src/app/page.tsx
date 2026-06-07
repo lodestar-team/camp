@@ -86,6 +86,49 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Full instrumentation — calls / traces */}
+        <section className="block reveal" id="calls">
+          <div className="container">
+            <p className="section-eyebrow">new · full instrumentation</p>
+            <h2 className="section-title">Internal traces — the data RPC hides.</h2>
+            <p className="section-lede">
+              Beyond blocks, transactions, and logs, camp now serves{" "}
+              <strong>internal-transaction traces</strong> — contract-to-contract calls,
+              delegatecalls, creates, self-destructs — with caller, callee, value, depth, and
+              gas. A plain JSON-RPC indexer can&apos;t produce this:{" "}
+              <a
+                className="inline-link"
+                href="https://github.com/lodestar-team/camp-node"
+                target="_blank"
+                rel="noreferrer"
+              >
+                camp-node
+              </a>{" "}
+              ingests it from{" "}
+              <a className="inline-link" href="https://pinax.network" target="_blank" rel="noreferrer">
+                Pinax
+              </a>{" "}
+              Firehose→Parquet and materialises it in-engine, queried the same way as every
+              other table.
+            </p>
+            <div className="cta-row">
+              <a className="btn btn-primary" href="/explore/calls">
+                Browse calls / traces
+              </a>
+              <a className="btn" href="/v1/calls">
+                /v1/calls JSON
+              </a>
+            </div>
+            <p
+              className="lede"
+              style={{ marginTop: 12, fontSize: "0.9em", color: "var(--text-muted)" }}
+            >
+              <code>curl https://engine.camp/v1/calls</code> · showcase slice: ETH mainnet
+              (Arbitrum full instrumentation lands as Pinax ships it).
+            </p>
+          </div>
+        </section>
+
         {/* Endpoints */}
         <section className="block reveal" id="endpoints">
           <div className="container">

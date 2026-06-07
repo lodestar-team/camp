@@ -4,6 +4,7 @@ import { NavDropdown, type DropdownItem } from "./NavDropdown";
 const EXPLORE_ITEMS: DropdownItem[] = [
   { href: "/explore", label: "explore home", desc: "live blocks + dashboard index" },
   { href: "/explore/sql", label: "sql playground", desc: "Dune-style SELECT against the indexed tables" },
+  { href: "/explore/calls", label: "calls / traces", desc: "internal-tx traces — full instrumentation via Pinax" },
   { href: "/explore/uniswap-v3", label: "uniswap v3", desc: "decoded swap / mint / burn per pool" },
   { href: "/explore/horizon", label: "graph horizon", desc: "stake, delegation, slashing timeline" },
   { href: "/explore/whales", label: "whale transfers", desc: "live big-Transfer ticker" },
