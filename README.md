@@ -288,7 +288,8 @@ Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 - **Phase E** ✅ Flight-native origin — ampd behind a JSONL ⇆ Flight shim; working compactor
 - **Phase F** ✅ Anonymous bearer tokens — opt-in for 10× per-IP limits (300/min · 5,000/hour) with no signup
 - **Phase G** ✅ Self-built engine — cut over from the closed-source ampup binary to our own source-built engine ([camp-node](https://github.com/lodestar-team/camp-node) `v0.1.0`); no closed-source black box
-- **Next** GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
+- **Phase H** 🔬 Full-instrumentation data source (engine-side) — camp-node [`v0.2.0`](https://github.com/lodestar-team/camp-node/releases/tag/v0.2.0) adds a `pinax` source that ingests [Pinax](https://pinax.network) Firehose→Parquet, unlocking `calls` (internal-tx traces) and other tables RPC can't produce. Proven end-to-end in the engine; **surfacing it on engine.camp** (a live `calls` dataset + a `/v1/calls` endpoint and `/explore` page) is the next step.
+- **Next** Surface `calls`/traces on engine.camp, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
 
 ---
 
