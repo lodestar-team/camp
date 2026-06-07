@@ -15,6 +15,12 @@ const DASHBOARDS = [
       "Write your own queries. Read-only DataFusion-flavoured SQL against the raw and decoded tables, with full UDF access.",
   },
   {
+    href: "/explore/calls",
+    title: "calls / traces",
+    blurb:
+      "Internal-transaction traces — full-instrumentation data RPC can't produce, sourced from Pinax Firehose→Parquet and materialised in-engine by camp-node.",
+  },
+  {
     href: "/explore/uniswap-v3",
     title: "uniswap v3",
     blurb:
