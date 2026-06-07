@@ -46,7 +46,7 @@ export async function GET(req: Request) {
         ${hexCol("tx_hash")} AS tx_hash,
         ${hexCol("caller")} AS caller,
         ${hexCol("address")} AS address,
-        CAST(value AS VARCHAR) AS value
+        arrow_cast(value, 'Utf8') AS value
       FROM "${CALLS_DATASET}".calls
       WHERE block_num BETWEEN ${from_block} AND ${to_block}
       ORDER BY block_num ASC, "index" ASC

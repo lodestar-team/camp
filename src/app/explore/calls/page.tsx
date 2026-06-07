@@ -32,7 +32,7 @@ export default async function CallsPage() {
       SELECT block_num, depth, call_type, gas_consumed,
         ${hexCol("caller")} AS caller,
         ${hexCol("address")} AS address,
-        CAST(value AS VARCHAR) AS value
+        arrow_cast(value, 'Utf8') AS value
       FROM "${CALLS_DATASET}".calls
       WHERE block_num BETWEEN 48000 AND 52000
       ORDER BY block_num ASC, "index" ASC
