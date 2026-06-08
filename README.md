@@ -311,7 +311,8 @@ Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 - **Phase F** ✅ Anonymous bearer tokens — opt-in for 10× per-IP limits (300/min · 5,000/hour) with no signup
 - **Phase G** ✅ Self-built engine — cut over from the closed-source ampup binary to our own source-built engine ([camp-node](https://github.com/lodestar-team/camp-node) `v0.1.0`); no closed-source black box
 - **Phase H** ✅ Full instrumentation — camp-node [`v0.4.0`](https://github.com/lodestar-team/camp-node/releases/tag/v0.4.0) `pinax` source ingests [Pinax](https://pinax.network) Firehose→Parquet (8 tables), unlocking the set RPC can't produce: internal-tx traces, storage writes, the balance ledger (with reason), code & nonce changes. **Live on engine.camp**: [`/v1/calls`](https://engine.camp/v1/calls), [`/v1/storage-changes`](https://engine.camp/v1/storage-changes), [`/v1/balance-changes`](https://engine.camp/v1/balance-changes) + [`/explore/state`](https://engine.camp/explore/state) (ETH-mainnet showcase slice; Arbitrum lands as Pinax ships it).
-- **Next** More Pinax tables (`storage_changes`, balances) + Arbitrum full instrumentation when Pinax ships it, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
+- **Phase I** ✅ Postgres wire protocol — camp-node [`v0.5.0`](https://github.com/lodestar-team/camp-node/releases/tag/v0.5.0) speaks Postgres natively (psql / Grafana / Metabase / DBeaver), alongside default-on Parquet Bloom filters + compactor and a verified Cloudflare R2 storage path. Engine capability today; public pg port at the edge is a deferred step.
+- **Next** Arbitrum full instrumentation when Pinax ships it, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
 
 ---
 
