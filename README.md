@@ -200,7 +200,7 @@ camp is one of many possible deployments of the same pattern. If you want to ser
 **What you'll need:**
 
 - An Arbitrum One RPC endpoint (Alchemy / Infura free tier is enough; a local node is better)
-- A server (~4 GB RAM, ~100 GB SSD; the parquet store keeps growing until the compactor catches up)
+- A server (~4 GB RAM; ~100 GB SSD for local storage — or none if you put the parquet store on object storage, see below)
 - Linux + systemd, or Docker / Podman
 - Optionally: a domain + Cloudflare for the public-facing edge
 
@@ -212,9 +212,14 @@ camp is one of many possible deployments of the same pattern. If you want to ser
 4. **This gateway** (the repo you're reading) — deploy to Vercel, or `npm run start` it anywhere with Node.js 22+. Point `AMP_ORIGIN` at nginx.
 5. **Cloudflare Tunnel** (optional) — keeps the origin private and gives you DDoS / CDN for free.
 
+**Storage & compaction (two common gotchas):**
+
+- **Don't hand-compact.** The RPC extractor writes many small parquet files as it follows the chain; camp-node's **compactor + collector are on by default** (v0.5.0+) and merge them automatically. No manual compaction or reindexing.
+- **Store on Cloudflare R2 instead of local disk** if you don't want to manage SSD. `data_dir` accepts an `s3://` URL — R2 speaks the S3 API, so it's just an endpoint + credentials. The indexer writes parquet to R2 and the engine reads it back (footer caching + Bloom-filter pruning keep reads fast), and you can front R2 with Cloudflare's CDN. Copy-paste setup: camp-node's [`docs/config.md`](https://github.com/lodestar-team/camp-node/blob/main/docs/config.md).
+
 **Help & support:** open an issue on [github.com/lodestar-team/camp/issues](https://github.com/lodestar-team/camp/issues). For the indexer side specifically, the [Amp Discord](https://www.lodestar-dashboard.com/blog/camp-deep-dive) is the fastest way to get help.
 
-The gateway is the easy part. The bigger work is indexer ops — backfill, compactor tuning, RPC budget. The deep-dive blog post covers what we learned the hard way.
+The gateway is the easy part. The bigger work is indexer ops — backfill, RPC budget, storage. The deep-dive blog post covers what we learned the hard way.
 
 ---
 
