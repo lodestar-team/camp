@@ -183,7 +183,9 @@ This repository is the Vercel-hosted public-facing gateway only. The ampd node, 
 
 ### The engine
 
-camp runs **[camp-node](https://github.com/lodestar-team/camp-node)** — our source-built indexing engine, built on Edge & Node's Amp (BUSL-1.1) — **not** the official closed-source binary distributed via [ampup.sh](https://ampup.sh/docs). Building the engine ourselves keeps it auditable, pinnable, and patchable, and the binary self-reports its exact version (`ampd --version` → `v0.1.0`; see the [v0.1.0 release](https://github.com/lodestar-team/camp-node/releases/tag/v0.1.0)). camp's free, no-key service is permitted under Amp's BUSL Additional Use Grant (free → non-competitive).
+camp runs **[camp-node](https://github.com/lodestar-team/camp-node)** — our source-built indexing engine, built on Edge & Node's Amp (BUSL-1.1) — **not** the official closed-source binary distributed via [ampup.sh](https://ampup.sh/docs). Building the engine ourselves keeps it auditable, pinnable, and patchable, and the binary self-reports its exact version (see the [latest release](https://github.com/lodestar-team/camp-node/releases/latest)). camp's free, no-key service is permitted under Amp's BUSL Additional Use Grant (free → non-competitive).
+
+Because we own the engine, it gains capabilities the upstream binary doesn't. As of [camp-node v0.5.0](https://github.com/lodestar-team/camp-node/releases/tag/v0.5.0) it speaks the **PostgreSQL wire protocol** in addition to Arrow Flight and JSON Lines — so a self-hosted node can be queried directly from psql, Grafana, Metabase, or DBeaver with no key or driver shim (each dataset is a Postgres schema; read-only). On engine.camp the public surface is still the REST/SQL API below; exposing a Postgres port at the edge is a separate, deferred step.
 
 ### Data freshness
 
