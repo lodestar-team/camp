@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { ampQuery, hexCol, hexLiteral, table } from "@/lib/amp";
+import { ampQuery, hexCol, hexLiteral, resolveRange, table } from "@/lib/amp";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { handle, ApiError } from "@/lib/errors";
-import { addressParam, rangeParams, limitParam } from "@/lib/validate";
+import { addressParam, limitParam } from "@/lib/validate";
 import { cacheHeadersFor } from "@/lib/cache";
 
 export const runtime = "nodejs";
@@ -21,10 +21,7 @@ export async function GET(req: Request, ctx: RouteContext) {
     const address = addressParam.parse(rawAddr);
 
     const url = new URL(req.url);
-    const range = rangeParams.parse({
-      from_block: url.searchParams.get("from_block"),
-      to_block: url.searchParams.get("to_block"),
-    });
+    const range = await resolveRange(url.searchParams, 50_000);
     const limit = limitParam.parse(url.searchParams.get("limit") ?? undefined);
 
     const sql = `

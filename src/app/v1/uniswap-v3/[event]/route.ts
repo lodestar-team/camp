@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { ampQuery, hexCol, hexLiteral, table } from "@/lib/amp";
+import { ampQuery, hexCol, hexLiteral, resolveRange, table } from "@/lib/amp";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { handle, ApiError } from "@/lib/errors";
-import { rangeParams, limitParam, addressParam } from "@/lib/validate";
+import { limitParam, addressParam } from "@/lib/validate";
 import { cacheHeadersFor } from "@/lib/cache";
 import {
   UNISWAP_V3_EVENT_BY_SLUG,
@@ -29,20 +29,13 @@ export async function GET(req: Request, ctx: RouteContext) {
     }
 
     const url = new URL(req.url);
+    // pool OPTIONAL: defaults to the canonical USDC/WETH 0.05% pool so a bare
+    // call returns real activity; pass ?pool=0x… for any other V3 pool.
     const poolRaw = url.searchParams.get("pool");
-    if (!poolRaw) {
-      throw new ApiError(
-        "bad_request",
-        400,
-        "missing required query param: pool",
-        "pass ?pool=0x… (the V3 pool contract address)",
-      );
-    }
-    const pool = addressParam.parse(poolRaw);
-    const range = rangeParams.parse({
-      from_block: url.searchParams.get("from_block"),
-      to_block: url.searchParams.get("to_block"),
-    });
+    const pool = poolRaw
+      ? addressParam.parse(poolRaw)
+      : "0xc6962004f452be9203591991d15f6b388e09e8d0";
+    const range = await resolveRange(url.searchParams, 10_000);
     const limit = limitParam.parse(url.searchParams.get("limit") ?? undefined);
 
     // Optional indexed-address filters by field name. Topic positions are

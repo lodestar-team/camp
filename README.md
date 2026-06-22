@@ -12,25 +12,42 @@ See [src/app/page.tsx](src/app/page.tsx) for the public-facing landing page.
 
 ## Quickstart
 
-Three lines that get you something useful, with no setup:
+**Every endpoint works with zero arguments** — no params required, no setup. A bare call
+defaults to a recent window up to the chain tip, so you get live data on the first paste:
 
 ```bash
-# 1) Where is the chain tip?
+# Where is the chain tip?
 curl https://engine.camp/v1/status
 
-# 2) USDC Transfer events in a 1,000-block window
+# Latest ERC-20 transfers, chain-wide (each row carries its token address)
+curl https://engine.camp/v1/transfers
+
+# $1M+ USDC whale transfers, right now
+curl https://engine.camp/v1/whales/transfers
+
+# Latest Uniswap v3 swaps (defaults to the USDC/WETH 0.05% pool)
+curl https://engine.camp/v1/uniswap-v3/swap
+
+# Raw SQL — anything DataFusion accepts, as long as it filters on block_num
+curl -X POST https://engine.camp/v1/sql \
+  -H "Content-Type: text/plain" \
+  --data 'SELECT block_num, gas_used FROM "_/arbitrum_one@4.0.1".blocks
+          ORDER BY block_num DESC LIMIT 10'
+```
+
+Then narrow with params when you want to — scope to a token, an address, or an explicit
+block range:
+
+```bash
+# USDC transfers in a specific 1,000-block window
 curl "https://engine.camp/v1/transfers\
 ?token=0xaf88d065e77c8cc2239327c5edb3a432268e5831\
 &from_block=467200000&to_block=467201000&limit=20"
-
-# 3) Raw SQL — anything DataFusion accepts, as long as it filters on block_num
-curl -X POST https://engine.camp/v1/sql \
-  -H "Content-Type: text/plain" \
-  --data 'SELECT block_num, gas_used
-          FROM "_/arbitrum_one@2.0.0".blocks
-          WHERE block_num BETWEEN 467200000 AND 467200100
-          ORDER BY block_num DESC'
 ```
+
+> **Defaults:** omit `from_block`/`to_block` and you get the most recent window up to the tip
+> (10k blocks for chain-wide log scans, 50k for address/contract views). Pass either bound to
+> override. `?limit` defaults to 100 (max 1,000).
 
 No key, no signup. Anonymous limits: 30 req/min · 500 req/hour per IP. Per-request caps: 100,000 block span · 1,000 rows · 8 s server-side timeout. Edge cache: 1 h for finalized ranges, 5 s near tip.
 
@@ -61,6 +78,32 @@ curl https://engine.camp/v1/status \
 
 ---
 
+## Use it from an AI agent (MCP)
+
+camp ships an [MCP](https://modelcontextprotocol.io) server so Claude, Cursor, or any MCP
+client can query Arbitrum in natural language — no key, no signup, nothing to host. It wraps
+the REST API as tools (`sql`, `transfers`, `whale_transfers`, `uniswap_v3`, `address_activity`, …).
+
+**Claude Code**
+```bash
+claude mcp add camp -- npx -y camp-mcp
+```
+
+**Claude Desktop / Cursor** — add to the MCP config:
+```json
+{
+  "mcpServers": {
+    "camp": { "command": "npx", "args": ["-y", "camp-mcp"] }
+  }
+}
+```
+
+Then just ask: *"What were the biggest USDC transfers on Arbitrum in the last hour?"* or
+*"Write SQL to count txs per block over the last 5,000 blocks and run it."* Full tool list and
+options in [`mcp/README.md`](mcp/README.md).
+
+---
+
 ## What you can build
 
 A few things people are actually building (or could build in an afternoon) on top of camp:
@@ -78,6 +121,10 @@ The **SQL playground** at [`/explore/sql`](https://engine.camp/explore/sql) lets
 
 ## Endpoints
 
+> _All query params below are **optional**._ Omit a block range and you get the most recent
+> window up to the tip; omit a `token`/`address`/`pool` filter and you get chain-wide / a sensible
+> default. Every endpoint returns live data on a bare call — params only narrow it.
+
 ### Auth
 
 | Method | Path | Purpose |
@@ -91,8 +138,8 @@ The **SQL playground** at [`/explore/sql`](https://engine.camp/explore/sql) lets
 |---|---|---|
 | GET | `/v1/status` | Latest indexed block + indexed-block count + history depth |
 | GET | `/v1/signatures` | Reference of well-known event topic0 hashes |
-| GET | `/v1/transfers?token=…&from_block=…&to_block=…` | ERC-20 / 721 Transfer events, decoded (`from`/`to`/`value`) |
-| GET | `/v1/events?address=…&topic0=…&topic1..3=…&from_block=…&to_block=…` | Generic log filter |
+| GET | `/v1/transfers[?token=…&from_block=…&to_block=…]` | ERC-20 / 721 Transfer events, decoded (`token`/`from`/`to`/`value`). Bare = latest chain-wide |
+| GET | `/v1/events[?address=…&topic0..3=…&from_block=…&to_block=…]` | Generic log filter. Bare = latest logs chain-wide (each row carries its `address`) |
 | GET | `/v1/block/{n}` | Full block: header + every tx + every log |
 | GET | `/v1/tx/{hash}?from_block=…&to_block=…` | Transaction + its logs (default window: last 100 k blocks) |
 | GET | `/v1/address/{a}/tx?direction=from\|to\|all` | Transactions where address is `from`/`to` |
@@ -106,7 +153,7 @@ The **SQL playground** at [`/explore/sql`](https://engine.camp/explore/sql) lets
 | GET | `/v1/gas/blocks?bucket=minute\|hour\|day` | Gas / base-fee / throughput time-series |
 | GET | `/v1/contract/{a}/activity?bucket=…` | Log-count time-series per contract |
 | GET | `/v1/token/{a}/volume?bucket=…` | Token transfer volume per bucket |
-| GET | `/v1/whales/transfers?token=…&min_value=…` | Big-Transfer feed for any token |
+| GET | `/v1/whales/transfers[?token=…&min_value=…]` | Big-Transfer feed. Bare = $1M+ USDC right now |
 
 ### Full instrumentation (Pinax source)
 
@@ -128,7 +175,7 @@ Showcase slice: ETH mainnet (Arbitrum lands when Pinax ships it).
 | GET | `/v1/horizon` | Catalog of supported Horizon events |
 | GET | `/v1/horizon/{event}` | 12 decoded Horizon staking events (provisions, delegations, slashing, …) |
 | GET | `/v1/uniswap-v3` | Catalog |
-| GET | `/v1/uniswap-v3/{event}?pool=…` | Decoded Uniswap V3 `swap`, `mint`, `burn` per pool |
+| GET | `/v1/uniswap-v3/{event}[?pool=…]` | Decoded Uniswap V3 `swap`, `mint`, `burn`. `pool` defaults to USDC/WETH 0.05% |
 
 ### Raw SQL, streams, discovery
 
@@ -138,8 +185,32 @@ Showcase slice: ETH mainnet (Arbitrum lands when Pinax ships it).
 | GET | `/v1/sql` | Surface description: tables, UDFs, contract |
 | GET | `/v1/datasets` | Full programmatic surface — raw + decoded + lookups + aggregates |
 | GET | `/v1/stream/blocks` | Server-Sent Events: new blocks as they're indexed |
+| GET | `/v1/stream/logs[?address=…&topic0=…]` | SSE: new logs matching a filter — the alerting primitive |
 
 OpenAPI 3.1 spec at [`/openapi.yaml`](https://engine.camp/openapi.yaml); browsable reference at [`/docs`](https://engine.camp/docs).
+
+### Live streams & alerting
+
+Subscribe with `EventSource` to get pushed new blocks or filtered logs as they're indexed —
+the basis for "ping me when X happens" bots. Connections cap at 5 min; `EventSource` reconnects
+automatically.
+
+```js
+// Alert on every USDC Transfer, live
+const usdc = "0xaf88d065e77c8cc2239327c5edb3a432268e5831";
+const transfer = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const es = new EventSource(
+  `https://engine.camp/v1/stream/logs?address=${usdc}&topic0=${transfer}`,
+);
+es.addEventListener("log", (e) => {
+  const log = JSON.parse(e.data);
+  console.log("USDC transfer", log.tx_hash, log.topic2 /* recipient */);
+  // → forward to your own webhook / queue / Slack here
+});
+```
+
+> camp serves SSE (you subscribe), not push-to-your-URL webhooks — delivery infra a single free
+> node shouldn't promise. Bridge the stream to your own webhook/queue if you need fan-out.
 
 ---
 
@@ -147,7 +218,7 @@ OpenAPI 3.1 spec at [`/openapi.yaml`](https://engine.camp/openapi.yaml); browsab
 
 [`/explore`](https://engine.camp/explore) — one UI surface for every v1 endpoint:
 
-- [`/explore/sql`](https://engine.camp/explore/sql) — Dune-style SQL playground with canned examples
+- [`/explore/sql`](https://engine.camp/explore/sql) — Dune-style SQL playground with canned examples and **shareable query links** (hit *Share* to copy a `?q=…` permalink that reopens the exact query)
 - [`/explore/calls`](https://engine.camp/explore/calls) — internal-tx traces (full instrumentation) via the Pinax source
 - [`/explore/state`](https://engine.camp/explore/state) — storage writes + balance ledger (with reason) via the Pinax source
 - [`/explore/uniswap-v3`](https://engine.camp/explore/uniswap-v3) — decoded swap/mint/burn per pool
@@ -159,6 +230,8 @@ OpenAPI 3.1 spec at [`/openapi.yaml`](https://engine.camp/openapi.yaml); browsab
 - [`/explore/contract`](https://engine.camp/explore/contract) — log-count time-series for any contract
 - [`/explore/lookup`](https://engine.camp/explore/lookup) — ad-hoc block / tx / events forms
 - [`/explore/signatures`](https://engine.camp/explore/signatures) — well-known topic0 reference
+
+Plus a live health page at [`/status`](https://engine.camp/status) — chain tip, indexing freshness, and history depth, auto-refreshing every 10s (reads the public `/v1/status`; wire it into your own uptime monitor).
 
 ---
 
@@ -312,7 +385,8 @@ Tracking the bigger plan in [ROADMAP.md](ROADMAP.md). Where we are:
 - **Phase G** ✅ Self-built engine — cut over from the closed-source ampup binary to our own source-built engine ([camp-node](https://github.com/lodestar-team/camp-node) `v0.1.0`); no closed-source black box
 - **Phase H** ✅ Full instrumentation — camp-node [`v0.4.0`](https://github.com/lodestar-team/camp-node/releases/tag/v0.4.0) `pinax` source ingests [Pinax](https://pinax.network) Firehose→Parquet (8 tables), unlocking the set RPC can't produce: internal-tx traces, storage writes, the balance ledger (with reason), code & nonce changes. **Live on engine.camp**: [`/v1/calls`](https://engine.camp/v1/calls), [`/v1/storage-changes`](https://engine.camp/v1/storage-changes), [`/v1/balance-changes`](https://engine.camp/v1/balance-changes) + [`/explore/state`](https://engine.camp/explore/state) (ETH-mainnet showcase slice; Arbitrum lands as Pinax ships it).
 - **Phase I** ✅ Postgres wire protocol — camp-node [`v0.5.0`](https://github.com/lodestar-team/camp-node/releases/tag/v0.5.0) speaks Postgres natively (psql / Grafana / Metabase / DBeaver), alongside default-on Parquet Bloom filters + compactor and a verified Cloudflare R2 storage path. Engine capability today; public pg port at the edge is a deferred step.
-- **Next** Arbitrum full instrumentation when Pinax ships it, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, webhooks.
+- **Phase J** ✅ Agent & DX surface (`v0.9.0`) — **every endpoint works with zero arguments** (live data on a bare call); an **MCP server** (`npx camp-mcp`) so Claude / Cursor / any agent queries Arbitrum keyless; **shareable SQL permalinks** + expanded example gallery; **filtered SSE log streams** ([`/v1/stream/logs`](https://engine.camp/v1/stream/logs)) as the alerting primitive; and a public [`/status`](https://engine.camp/status) health page.
+- **Next** Arbitrum full instrumentation when Pinax ships it, GMX V2 (EventEmitter decoding), CSV / Arrow IPC export, native Amp CDC bridge for live decoded streams, caller-URL webhook delivery on top of the SSE streams.
 
 ---
 

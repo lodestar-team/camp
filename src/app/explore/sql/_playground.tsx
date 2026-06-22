@@ -82,7 +82,51 @@ WHERE block_num BETWEEN ${tip - 1000} AND ${tip}
 GROUP BY 1
 ORDER BY 1 DESC`,
   },
+  {
+    label: "Biggest USDC transfers (last 2,000 blocks)",
+    sql: (tip, ds) => `SELECT
+  block_num,
+  encode(arrow_cast(tx_hash, 'Binary'), 'hex') AS tx_hash,
+  d['from'] AS from_addr,
+  d['to']   AS to_addr,
+  arrow_cast(d['value'], 'Utf8') AS value
+FROM (
+  SELECT block_num, tx_hash,
+    (evm_decode_log(topic1, topic2, topic3, data,
+      'Transfer(address indexed from, address indexed to, uint256 value)')) AS d
+  FROM "${ds}".logs
+  WHERE block_num BETWEEN ${tip - 2000} AND ${tip}
+    AND address = X'af88d065e77c8cc2239327c5edb3a432268e5831'
+    AND topic0  = evm_topic('Transfer(address,address,uint256)')
+)
+ORDER BY arrow_cast(d['value'], 'Decimal128(38, 0)') DESC
+LIMIT 20`,
+  },
+  {
+    label: "Busiest senders (last 1,000 blocks)",
+    sql: (tip, ds) => `SELECT
+  encode(arrow_cast("from", 'Binary'), 'hex') AS sender,
+  COUNT(*) AS txs,
+  arrow_cast(SUM(gas_used), 'Utf8') AS total_gas
+FROM "${ds}".transactions
+WHERE block_num BETWEEN ${tip - 1000} AND ${tip}
+GROUP BY 1
+ORDER BY txs DESC
+LIMIT 15`,
+  },
 ];
+
+// Compactly encode/decode a query for a shareable ?q= link (base64 of UTF-8).
+function encodeQuery(sql: string): string {
+  return btoa(unescape(encodeURIComponent(sql)));
+}
+function decodeQuery(q: string): string | null {
+  try {
+    return decodeURIComponent(escape(atob(q)));
+  } catch {
+    return null;
+  }
+}
 
 export function SqlPlayground() {
   const [sql, setSql] = useState<string>("");
@@ -91,7 +135,11 @@ export function SqlPlayground() {
   const [error, setError] = useState<SqlError["error"] | null>(null);
   const [tip, setTip] = useState<number | null>(null);
   const [dataset, setDataset] = useState<string>(DEFAULT_DATASET);
+  const [shareLabel, setShareLabel] = useState("Share");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // True once a query was loaded from a ?q= share link, so we don't clobber it
+  // with the default example when the tip arrives.
+  const loadedFromUrl = useRef(false);
 
   // Fetch tip + live dataset ref once for examples
   useEffect(() => {
@@ -104,12 +152,37 @@ export function SqlPlayground() {
       .catch(() => {});
   }, []);
 
-  // Seed initial example after tip arrives
+  // On mount, hydrate from a shared ?q= link if present.
   useEffect(() => {
-    if (tip != null && sql === "") {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) {
+      const decoded = decodeQuery(q);
+      if (decoded) {
+        loadedFromUrl.current = true;
+        setSql(decoded);
+      }
+    }
+  }, []);
+
+  // Seed initial example after tip arrives (unless a shared query was loaded).
+  useEffect(() => {
+    if (tip != null && sql === "" && !loadedFromUrl.current) {
       setSql(EXAMPLES[0]!.sql(tip, dataset));
     }
   }, [tip, sql, dataset]);
+
+  // Copy a shareable permalink to the current query, and reflect it in the URL.
+  async function share() {
+    const url = `${window.location.origin}/explore/sql?q=${encodeQuery(sql)}`;
+    window.history.replaceState(null, "", url);
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareLabel("Link copied!");
+    } catch {
+      setShareLabel("URL updated");
+    }
+    setTimeout(() => setShareLabel("Share"), 2000);
+  }
 
   async function run() {
     if (running) return;
@@ -181,6 +254,15 @@ export function SqlPlayground() {
           <span className="filter-label">
             <kbd className="kbd">⌘</kbd> + <kbd className="kbd">↩</kbd> to run
           </span>
+          <button
+            type="button"
+            className="btn"
+            onClick={share}
+            disabled={!sql.trim()}
+            title="Copy a shareable link to this query"
+          >
+            {shareLabel}
+          </button>
           <button
             type="button"
             className="btn btn-primary"

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { ampQuery, hexLiteral, table } from "@/lib/amp";
+import { ampQuery, hexLiteral, resolveRange, table } from "@/lib/amp";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { handle, ApiError } from "@/lib/errors";
-import { addressParam, rangeParams, bucketParam } from "@/lib/validate";
+import { addressParam, bucketParam } from "@/lib/validate";
 import { cacheHeadersFor } from "@/lib/cache";
 
 export const runtime = "nodejs";
@@ -20,10 +20,9 @@ export async function GET(req: Request, ctx: RouteContext) {
     const token = addressParam.parse(rawAddr);
 
     const url = new URL(req.url);
-    const range = rangeParams.parse({
-      from_block: url.searchParams.get("from_block"),
-      to_block: url.searchParams.get("to_block"),
-    });
+    // Default to a recent window up to the tip when no range is given, so a bare
+    // /v1/token/<addr>/volume returns a live series instead of an empty 0–0 range.
+    const range = await resolveRange(url.searchParams, 50_000);
     const bucket = bucketParam.parse(url.searchParams.get("bucket") ?? undefined);
 
     // Decode Transfer.value as decimal string, cast to Decimal128 for SUM.

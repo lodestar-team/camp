@@ -1,0 +1,22 @@
+{
+  "name": "camp-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for camp — query Arbitrum One on-chain data (blocks, transfers, decoded events, SQL) with no API key.",
+  "type": "module",
+  "bin": {
+    "camp-mcp": "server.mjs"
+  },
+  "files": [
+    "server.mjs",
+    "README.md"
+  ],
+  "keywords": ["mcp", "model-context-protocol", "arbitrum", "ethereum", "blockchain", "camp", "web3"],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -17,7 +17,10 @@ export async function GET(req: Request) {
   try {
     await checkRateLimit(req);
     const url = new URL(req.url);
-    const token = addressParam.parse(url.searchParams.get("token"));
+    // token is OPTIONAL: a bare call returns recent ERC-20 transfers chain-wide
+    // (each row carries its token address); pass ?token=0x… to scope to one token.
+    const tokenRaw = url.searchParams.get("token");
+    const token = tokenRaw ? addressParam.parse(tokenRaw) : null;
     // Default to a recent window (~10k blocks up to the tip) when no range given.
     const range = await resolveRange(url.searchParams, 10_000);
     const limit = limitParam.parse(url.searchParams.get("limit") ?? undefined);
@@ -27,25 +30,27 @@ export async function GET(req: Request) {
     // unsupported). `value` stays as a decimal string in the response —
     // exact, no precision loss, and clients that need a number can do
     // `BigInt(v)` themselves.
+    const tokenFilter = token ? `AND address = ${hexLiteral(token)}` : "";
     const sql = `
       SELECT
         block_num,
         log_index,
         ${hexCol("tx_hash")} AS tx_hash,
+        ${hexCol("token_addr")} AS token,
         d['from']  AS from_addr,
         d['to']    AS to_addr,
         d['value'] AS value
       FROM (
         SELECT
-          block_num, log_index, tx_hash,
+          block_num, log_index, tx_hash, address AS token_addr,
           (evm_decode_log(topic1, topic2, topic3, data,
             '${TRANSFER_SIG}')) AS d
         FROM ${table("logs")}
         WHERE block_num BETWEEN ${range.from_block} AND ${range.to_block}
-          AND address = ${hexLiteral(token)}
           AND topic0  = evm_topic('Transfer(address,address,uint256)')
+          ${tokenFilter}
       )
-      ORDER BY block_num ASC, log_index ASC
+      ORDER BY block_num DESC, log_index DESC
       LIMIT ${limit}
     `.trim();
 
@@ -54,6 +59,7 @@ export async function GET(req: Request) {
       block_num: Number(r.block_num),
       log_index: Number(r.log_index),
       tx_hash: `0x${r.tx_hash}`,
+      token: `0x${r.token}`,
       from: `0x${r.from_addr}`,
       to: `0x${r.to_addr}`,
       value: r.value as string, // decimal-string, big-int safe
