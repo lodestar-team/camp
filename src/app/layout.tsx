@@ -15,13 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "camp — Arbitrum's data engine",
+  title: "camp — retired, superseded by nuthatch",
   description:
-    "Free, tip-fresh REST gateway over Arbitrum One blocks/transactions/logs. Runs camp-node, a self-built engine (lodestar-team/camp-node), no SLA, no signup, no closed-source black box.",
+    "camp and Amp have been retired. Their functionality is now provided by nuthatch (nuthatch-indexer.com) — index any contract's events into a local SQL database.",
   openGraph: {
-    title: "camp — Arbitrum's data engine",
+    title: "camp — retired, superseded by nuthatch",
     description:
-      "Free, tip-fresh REST gateway over Arbitrum One blocks/transactions/logs.",
+      "camp and Amp have been retired. Use nuthatch (nuthatch-indexer.com) instead.",
   },
 };
 
